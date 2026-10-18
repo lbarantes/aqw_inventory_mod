@@ -51,6 +51,9 @@ namespace AQWMod.InventoryThumbs.Thumbnails
         private readonly Dictionary<string, Entry> _entries = new Dictionary<string, Entry>();
         private readonly List<Entry> _queue = new List<Entry>();
         private int _active;
+        private int _activeClones;
+        private const int MaxClones = 2;
+        private readonly bool[] _cloneSlots = new bool[MaxClones];
         private ManualLogSource _log;
         private string _diskDir;
 
@@ -235,22 +238,29 @@ namespace AQWMod.InventoryThumbs.Thumbnails
                 _lastBody = body;
             }
 
+            // clones (capacete/armadura/classe) têm limite próprio: são lentos e
+            // um clone travado não pode segurar as armas/capas da fila
             int max = Mathf.Max(1, InvConfig.MaxConcurrent.Value);
-            while (_active < max && _queue.Count > 0)
+            for (int i = _queue.Count - 1; i >= 0; i--)
             {
-                var e = _queue[_queue.Count - 1];
-                _queue.RemoveAt(_queue.Count - 1);
+                if (i >= _queue.Count) continue;
+                var e = _queue[i];
+                bool clone = StrategyFor(e.Item) == Strategy.Clone;
+                if (clone ? _activeClones >= MaxClones : _active >= max) continue;
 
+                _queue.RemoveAt(i);
                 PruneWaiters(e);
                 if (e.Waiters.Count == 0) { e.State = State.Idle; continue; }
 
                 StartCoroutine(Load(e));
+                if (_active >= max && _activeClones >= MaxClones) break;
             }
         }
 
         private IEnumerator Load(Entry e)
         {
-            _active++;
+            bool isClone = StrategyFor(e.Item) == Strategy.Clone;
+            if (isClone) _activeClones++; else _active++;
             e.State = State.Loading;
 
             IEnumerator job;
@@ -279,7 +289,7 @@ namespace AQWMod.InventoryThumbs.Thumbnails
             }
             if (e.State == State.Loading) Fail(e, "sem resultado");
 
-            _active--;
+            if (isClone) _activeClones--; else _active--;
             Deliver(e);
         }
 
@@ -359,7 +369,7 @@ namespace AQWMod.InventoryThumbs.Thumbnails
                 if (prefab == null) { Fail(e, $"prefab '{e.Item.PrefabName}' não está no bundle"); yield break; }
 
                 inst = Instantiate(prefab, Studio.Instance.Stage, false);
-                inst.transform.localPosition = Vector3.zero;
+                inst.transform.localPosition = Studio.SlotPosition(-1);
                 Studio.Instance.SetLayerRecursive(inst, Studio.Instance.Layer);
 
                 // deixa Awake/Start/Animator posicionarem as peças
@@ -389,7 +399,11 @@ namespace AQWMod.InventoryThumbs.Thumbnails
             var main = Entity.mainPlayer;
             if (main == null) { Fail(e, "personagem não carregado"); yield break; }
 
-            yield return WaitForStudio();
+            int slot = Array.IndexOf(_cloneSlots, false);
+            if (slot < 0) slot = 0;
+            _cloneSlots[slot] = true;
+            var slotPos = Studio.SlotPosition(slot);
+
             Player clone = null;
             try
             {
@@ -402,20 +416,35 @@ namespace AQWMod.InventoryThumbs.Thumbnails
 
                 GameObject loaded = null;
                 clone = new Player(main, Studio.Instance.Stage, equips);
-                KeepInStudio(clone);   // antes de qualquer peça ser criada
+                KeepInStudio(clone, slotPos);   // antes de qualquer peça ser criada
                 clone.showHelm = true;
                 clone.OnGameObjectLoaded += (id, go) => loaded = go;
                 clone.createAvatar();
-                KeepInStudio(clone);
+                KeepInStudio(clone, slotPos);
 
-                float waited = 0f, timeout = InvConfig.LoadTimeout.Value;
+                // Pronto = OnGameObjectLoaded do jogo. Mas às vezes a montagem do
+                // avatar quebra no meio (ex.: CustomizableCharacter.setupBack com
+                // prefab nulo) e esse evento nunca chega; antes isso segurava o
+                // estúdio por LoadTimeout (30s) e travava todas as outras fotos.
+                // Agora, se o avatar já tem peças visíveis e elas pararam de mudar
+                // por StableTime, fotografa assim mesmo.
+                float waited = 0f, timeout = Mathf.Min(InvConfig.LoadTimeout.Value, CloneTimeout);
+                float stableFor = 0f;
+                int lastCount = -1;
                 while (loaded == null && waited < timeout)
                 {
                     waited += Time.unscaledDeltaTime;
                     yield return null;
-                    KeepInStudio(clone);
+                    KeepInStudio(clone, slotPos);
+
+                    int count = VisibleRendererCount(clone.getGameObject());
+                    if (count > 0 && count == lastCount) stableFor += Time.unscaledDeltaTime;
+                    else stableFor = 0f;
+                    lastCount = count;
+                    if (waited >= MinCloneWait && stableFor >= StableTime) break;
                 }
-                if (loaded == null) { Fail(e, "clone não carregou (timeout)"); yield break; }
+                if (loaded == null && lastCount <= 0) { Fail(e, "clone não carregou (timeout)"); yield break; }
+                if (loaded == null) Verbose($"'{e.Item?.Name}': clone sem OnGameObjectLoaded, fotografando como está");
 
                 // peças do item podem terminar de chegar logo depois
                 float settle = 0f;
@@ -423,7 +452,7 @@ namespace AQWMod.InventoryThumbs.Thumbnails
                 {
                     settle += Time.unscaledDeltaTime;
                     yield return null;
-                    KeepInStudio(clone);
+                    KeepInStudio(clone, slotPos);
                 }
 
                 var root = clone.getGameObject() ?? loaded;
@@ -431,17 +460,39 @@ namespace AQWMod.InventoryThumbs.Thumbnails
                 if (e.Item.EquipSpot == EquipSpots.Head)
                     focus = () => HelmBounds(clone, root);
 
-                Texture2D tex = null;
-                string error = null;
-                yield return Studio.Instance.Shoot(root, focus, (t, err) => { tex = t; error = err; });
-                if (tex != null) Finish(e, tex, "studio:clone");
-                else Fail(e, error ?? "foto falhou");
+                // o estúdio (câmera) só é ocupado durante a foto em si
+                yield return WaitForStudio();
+                try
+                {
+                    Texture2D tex = null;
+                    string error = null;
+                    yield return Studio.Instance.Shoot(root, focus, (t, err) => { tex = t; error = err; });
+                    if (tex != null) Finish(e, tex, "studio:clone");
+                    else Fail(e, error ?? "foto falhou");
+                }
+                finally
+                {
+                    Studio.Instance?.Release();
+                }
             }
             finally
             {
                 try { clone?.Dispose(); } catch { }   // Dispose destrói o GameObject do clone
-                Studio.Instance?.Release();
+                _cloneSlots[slot] = false;
             }
+        }
+
+        private const float CloneTimeout = 15f;
+        private const float MinCloneWait = 2.5f;
+        private const float StableTime   = 0.75f;
+
+        private static int VisibleRendererCount(GameObject go)
+        {
+            if (go == null) return 0;
+            int n = 0;
+            foreach (var r in go.GetComponentsInChildren<Renderer>(false))
+                if (r.enabled && (!(r is SpriteRenderer sr) || sr.sprite != null)) n++;
+            return n;
         }
 
         // O construtor Player(main, pai, equips) faz eGO.transform.parent = pai,
@@ -451,13 +502,15 @@ namespace AQWMod.InventoryThumbs.Thumbnails
         // clone termina de carregar; aqui corrigimos desde o primeiro frame —
         // no estúdio (5000,5000) e na layer que só a câmera do estúdio vê.
         // createAvatar pode reposicionar o eGO, então repete a cada frame.
-        private static void KeepInStudio(Player clone)
+        // Cada clone fica na sua vaga (Studio.SlotPosition), longe dos outros:
+        // a câmera enquadra só o alvo, então clones vizinhos não entram na foto.
+        private static void KeepInStudio(Player clone, Vector3 slotPos)
         {
             var go = clone?.getGameObject();
             if (go == null || Studio.Instance == null) return;
             var t = go.transform;
             if (t.parent != Studio.Instance.Stage) t.SetParent(Studio.Instance.Stage, false);
-            t.localPosition = Vector3.zero;
+            t.localPosition = slotPos;
             Studio.Instance.SetLayerRecursive(go, Studio.Instance.Layer);
         }
 
@@ -549,7 +602,7 @@ namespace AQWMod.InventoryThumbs.Thumbnails
             e.State = State.Failed;
             e.Info  = reason;
             CountFailed++;
-            Verbose($"FALHA '{e.Item?.Name}' [{e.Key}]: {reason}");
+            _log.LogWarning($"[InvThumbs] Sem arte para '{e.Item?.Name}' ({e.Item?.EquipSpot}): {reason}");
         }
 
         private static void Deliver(Entry e)

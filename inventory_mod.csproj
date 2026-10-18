@@ -15,8 +15,8 @@
        versions/v<Version>-<VersionLabel>/ para comparar versões depois
        (tools/use-version.ps1 troca a DLL instalada). -->
   <PropertyGroup>
-    <Version>0.3.0</Version>
-    <VersionLabel>lista-mista</VersionLabel>
+    <Version>0.3.1</Version>
+    <VersionLabel>clone-nao-trava</VersionLabel>
   </PropertyGroup>
 
   <PropertyGroup>

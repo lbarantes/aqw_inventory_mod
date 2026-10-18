@@ -86,7 +86,7 @@ namespace AQWMod.InventoryThumbs
     {
         public const string GUID    = "com.aqwmod.inventorythumbs";
         public const string Name    = "AQW Inventory Thumbnails";
-        public const string Version = "0.3.0";
-        public const string Label   = "lista-mista";
+        public const string Version = "0.3.1";
+        public const string Label   = "clone-nao-trava";
     }
 }

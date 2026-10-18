@@ -7,6 +7,23 @@ cópia da DLL em `versions/`. Para trocar a instalada (com o jogo fechado):
 .\tools\use-version.ps1 v0.1.0
 ```
 
+## v0.3.1 — clone-nao-trava
+
+- **Corrige a aba de classes (e capacete/armadura) que às vezes não mostrava
+  as artes até trocar de aba e voltar.** Às vezes o jogo falha ao montar o
+  avatar do clone de alguma classe (`CustomizableCharacter.setupBack` com
+  prefab nulo). Quando isso acontecia, o aviso de "clone pronto" nunca
+  chegava, e o mod esperava 30s com o estúdio ocupado e as outras fotos
+  paradas na fila. Agora:
+  - um clone que já tem peças visíveis e estáveis é fotografado mesmo sem o
+    aviso, e o limite de espera de um clone caiu para 15s;
+  - o estúdio (câmera) só fica ocupado durante a foto em si; até 2 clones
+    carregam em paralelo, cada um na sua vaga, longe do outro;
+  - os clones têm fila própria e não ocupam mais as vagas de download das
+    armas, capas e pets.
+- Itens que ficam sem arte agora aparecem no `LogOutput.log` (uma linha
+  `[InvThumbs] Sem arte para ...`), para facilitar o diagnóstico.
+
 ## v0.3.0 — lista-mista
 
 - **Card por item, não por aba.** Na mesma lista, os itens com arte viram card

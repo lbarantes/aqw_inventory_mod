@@ -40,6 +40,10 @@ namespace AQWMod.InventoryThumbs.Thumbnails
         internal Transform Stage => _stage;
         internal int Layer => _layer;
 
+        // posição local de cada vaga no palco: clones carregando em paralelo e
+        // o objeto (pet) da vez ficam afastados uns dos outros
+        internal static Vector3 SlotPosition(int slot) => new Vector3((slot + 1) * 100f, 0f, 0f);
+
         internal void Setup(ManualLogSource log)
         {
             Instance = this;
