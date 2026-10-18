@@ -38,6 +38,7 @@ namespace AQWMod.InventoryThumbs.Thumbnails
 
         internal bool Busy { get; private set; }
         internal Transform Stage => _stage;
+        internal int Layer => _layer;
 
         internal void Setup(ManualLogSource log)
         {

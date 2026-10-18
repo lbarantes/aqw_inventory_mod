@@ -121,7 +121,21 @@ namespace AQWMod.InventoryThumbs.Thumbnails
             try   { file = item.Bundle.VersionedFileName; }
             catch { file = item.Bundle.Filename; }
             // estratégia na chave: mudar a forma de extrair invalida o cache antigo
-            return $"{strategy}{StrategyVersion(strategy)}|{file}|{item.PrefabName}|{(int)item.EquipSpot}";
+            var key = $"{strategy}{StrategyVersion(strategy)}|{file}|{item.PrefabName}|{(int)item.EquipSpot}";
+
+            // capacete é fotografado vestido com a armadura/classe atual (como o
+            // preview do jogo): trocar de armadura gera outra foto
+            if (item.EquipSpot == EquipSpots.Head) key += "|body" + BodySignature();
+            return key;
+        }
+
+        // armadura (ou, sem ela, classe) que o clone do capacete veste
+        private static string BodySignature()
+        {
+            var main = Entity.mainPlayer;
+            if (main == null) return "-";
+            var body = main.Armor ?? main.Class;
+            return body != null ? $"{body.EquipSpot}:{body.ID}" : "-";
         }
 
         private static int StrategyVersion(Strategy s) => s == Strategy.Sprite ? 1 : 2;
@@ -200,8 +214,25 @@ namespace AQWMod.InventoryThumbs.Thumbnails
 
         // ── Loop ──────────────────────────────────────────────────────────────
 
+        private string _lastBody;
+        private float  _bodyCheckAt;
+
         private void Update()
         {
+            // trocou de armadura/classe → as linhas visíveis de capacete pedem
+            // a foto nova (o refreshEquips do jogo não recarrega as linhas)
+            if (Time.unscaledTime >= _bodyCheckAt)
+            {
+                _bodyCheckAt = Time.unscaledTime + 0.5f;
+                var body = BodySignature();
+                if (_lastBody != null && body != _lastBody)
+                {
+                    Verbose($"armadura mudou ({_lastBody} → {body}), recarregando linhas");
+                    ThumbRow.RebindAll();
+                }
+                _lastBody = body;
+            }
+
             int max = Mathf.Max(1, InvConfig.MaxConcurrent.Value);
             while (_active < max && _queue.Count > 0)
             {
@@ -327,7 +358,7 @@ namespace AQWMod.InventoryThumbs.Thumbnails
 
                 inst = Instantiate(prefab, Studio.Instance.Stage, false);
                 inst.transform.localPosition = Vector3.zero;
-                Studio.Instance.SetLayerRecursive(inst, LayerMask.NameToLayer("RenderTextures"));
+                Studio.Instance.SetLayerRecursive(inst, Studio.Instance.Layer);
 
                 // deixa Awake/Start/Animator posicionarem as peças
                 yield return null;
@@ -369,21 +400,29 @@ namespace AQWMod.InventoryThumbs.Thumbnails
 
                 GameObject loaded = null;
                 clone = new Player(main, Studio.Instance.Stage, equips);
+                KeepInStudio(clone);   // antes de qualquer peça ser criada
                 clone.showHelm = true;
                 clone.OnGameObjectLoaded += (id, go) => loaded = go;
                 clone.createAvatar();
+                KeepInStudio(clone);
 
                 float waited = 0f, timeout = InvConfig.LoadTimeout.Value;
                 while (loaded == null && waited < timeout)
                 {
                     waited += Time.unscaledDeltaTime;
                     yield return null;
+                    KeepInStudio(clone);
                 }
                 if (loaded == null) { Fail(e, "clone não carregou (timeout)"); yield break; }
 
                 // peças do item podem terminar de chegar logo depois
                 float settle = 0f;
-                while (settle < 0.35f) { settle += Time.unscaledDeltaTime; yield return null; }
+                while (settle < 0.35f)
+                {
+                    settle += Time.unscaledDeltaTime;
+                    yield return null;
+                    KeepInStudio(clone);
+                }
 
                 var root = clone.getGameObject() ?? loaded;
                 Func<Bounds?> focus = null;
@@ -401,6 +440,23 @@ namespace AQWMod.InventoryThumbs.Thumbnails
                 try { clone?.Dispose(); } catch { }   // Dispose destrói o GameObject do clone
                 Studio.Instance?.Release();
             }
+        }
+
+        // O construtor Player(main, pai, equips) faz eGO.transform.parent = pai,
+        // que MANTÉM a posição de mundo: o clone nasceria na origem do mapa, à
+        // vista da câmera do jogo (o "preview fantasma" piscando na tela). O
+        // preview do jogo corrige com SetParent(spriteParent, false) quando o
+        // clone termina de carregar; aqui corrigimos desde o primeiro frame —
+        // no estúdio (5000,5000) e na layer que só a câmera do estúdio vê.
+        // createAvatar pode reposicionar o eGO, então repete a cada frame.
+        private static void KeepInStudio(Player clone)
+        {
+            var go = clone?.getGameObject();
+            if (go == null || Studio.Instance == null) return;
+            var t = go.transform;
+            if (t.parent != Studio.Instance.Stage) t.SetParent(Studio.Instance.Stage, false);
+            t.localPosition = Vector3.zero;
+            Studio.Instance.SetLayerRecursive(go, Studio.Instance.Layer);
         }
 
         // Área do capacete: renderers sob CC.GetHelmPlace(); se não houver,

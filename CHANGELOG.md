@@ -7,6 +7,20 @@ cópia da DLL em `versions/`. Para trocar a instalada (com o jogo fechado):
 .\tools\use-version.ps1 v0.1.0
 ```
 
+## v0.2.2 — clone-sem-fantasma
+
+- **Corrige o "preview fantasma".** Enquanto carregavam armaduras, classes e
+  capacetes, um clone completo do personagem piscava no lado esquerdo da tela,
+  um para cada item. A causa: o construtor do clone do jogo mantém a posição de
+  mundo ao prender o objeto, então o clone nascia na origem do mapa, à vista
+  da câmera. Agora ele vai para o estúdio fora da tela, na layer de
+  renderização, desde o primeiro frame, e é mantido lá a cada frame enquanto
+  carrega.
+- **O capacete acompanha a armadura atual.** A foto do capacete é tirada
+  vestindo a armadura (ou classe) equipada, como no preview do jogo. Agora a
+  armadura faz parte da chave do cache, e o mod percebe a troca (verifica a
+  cada 0,5s) e recarrega as linhas visíveis.
+
 ## v0.2.1 — cards-pets-elmos-armaduras
 
 Correções na v0.2.0, sem mudar o visual dos cards.
