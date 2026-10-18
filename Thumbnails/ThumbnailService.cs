@@ -125,7 +125,9 @@ namespace AQWMod.InventoryThumbs.Thumbnails
 
             // capacete é fotografado vestido com a armadura/classe atual (como o
             // preview do jogo): trocar de armadura gera outra foto
-            if (item.EquipSpot == EquipSpots.Head) key += "|body" + BodySignature();
+            // o enquadramento também entra na chave: mudar HelmFrame refaz as fotos
+            if (item.EquipSpot == EquipSpots.Head)
+                key += $"|body{BodySignature()}|f{InvConfig.HelmFrame.Value:0.00}/{InvConfig.HelmOffsetY.Value:0.00}";
             return key;
         }
 
@@ -459,25 +461,49 @@ namespace AQWMod.InventoryThumbs.Thumbnails
             Studio.Instance.SetLayerRecursive(go, Studio.Instance.Layer);
         }
 
-        // Área do capacete: renderers sob CC.GetHelmPlace(); se não houver,
-        // o terço de cima do personagem (cabeça).
+        // Enquadramento do capacete com ESCALA FIXA: o quadro não depende do
+        // tamanho do capacete (senão capacete grande sai "longe" e pequeno
+        // "perto"). Tamanho = fração da altura do corpo sem o capacete — o corpo
+        // é o mesmo para todos (mesma armadura/classe) — e centro = posição do
+        // CC.GetHelmPlace(), que segue a cabeça. Capacetes muito grandes podem
+        // passar da borda; ajuste em [Layout] HelmFrame / HelmOffsetY.
         private static Bounds? HelmBounds(Player clone, GameObject root)
         {
             var cc = (clone.GetAvatar() as HumanoidAvatar)?.CC;
             var place = cc != null ? cc.GetHelmPlace() : null;
-            var b = place != null ? Studio.RendererBounds(place) : null;
-            if (b != null)
+            var body = BoundsExcluding(root, place != null ? place.transform : null);
+
+            if (place != null && body != null)
             {
-                var hb = b.Value;
-                hb.Expand(new Vector3(hb.size.x * 0.15f, hb.size.y * 0.15f, 0f));
-                return hb;
+                float h = body.Value.size.y * Mathf.Clamp(InvConfig.HelmFrame.Value, 0.1f, 1.5f);
+                float w = h * 1.25f;
+                var c = place.transform.position + new Vector3(0f, h * InvConfig.HelmOffsetY.Value, 0f);
+                return new Bounds(new Vector3(c.x, c.y, body.Value.center.z), new Vector3(w, h, body.Value.size.z));
             }
 
+            // sem âncora da cabeça: terço de cima do personagem
             var full = Studio.RendererBounds(root);
             if (full == null) return null;
             var f = full.Value;
-            float h = f.size.y * 0.4f;
-            return new Bounds(new Vector3(f.center.x, f.max.y - h / 2f, f.center.z), new Vector3(f.size.x, h, f.size.z));
+            float fh = f.size.y * 0.4f;
+            return new Bounds(new Vector3(f.center.x, f.max.y - fh / 2f, f.center.z), new Vector3(f.size.x, fh, f.size.z));
+        }
+
+        // como Studio.RendererBounds, ignorando o que estiver sob "skip"
+        private static Bounds? BoundsExcluding(GameObject root, Transform skip)
+        {
+            Bounds? acc = null;
+            foreach (var r in root.GetComponentsInChildren<Renderer>(false))
+            {
+                if (!r.enabled || (skip != null && r.transform.IsChildOf(skip))) continue;
+                var n = r.GetType().Name;
+                if (n == "ParticleSystemRenderer" || n == "TrailRenderer" || n == "LineRenderer") continue;
+                if (r is SpriteRenderer sr && (sr.sprite == null || sr.color.a <= 0.01f)) continue;
+                if (r.bounds.size.sqrMagnitude <= 0f) continue;
+                if (acc == null) acc = r.bounds;
+                else { var a = acc.Value; a.Encapsulate(r.bounds); acc = a; }
+            }
+            return acc;
         }
 
         private void Finish(Entry e, Texture2D tex, string source)

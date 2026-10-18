@@ -83,7 +83,7 @@ namespace AQWMod.InventoryThumbs
     {
         public const string GUID    = "com.aqwmod.inventorythumbs";
         public const string Name    = "AQW Inventory Thumbnails";
-        public const string Version = "0.2.2";
-        public const string Label   = "clone-sem-fantasma";
+        public const string Version = "0.2.3";
+        public const string Label   = "elmos-mesma-escala";
     }
 }

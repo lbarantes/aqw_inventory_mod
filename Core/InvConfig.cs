@@ -24,6 +24,8 @@ namespace AQWMod.InventoryThumbs.Core
         internal static ConfigEntry<float>  BadgeScale     { get; private set; }
         internal static ConfigEntry<float>  IconScale      { get; private set; }
         internal static ConfigEntry<float>  CardMinRatio   { get; private set; }
+        internal static ConfigEntry<float>  HelmFrame      { get; private set; }
+        internal static ConfigEntry<float>  HelmOffsetY    { get; private set; }
 
         internal static ConfigEntry<bool>   ShowWeapons    { get; private set; }
         internal static ConfigEntry<bool>   ShowCapes      { get; private set; }
@@ -61,6 +63,10 @@ namespace AQWMod.InventoryThumbs.Core
                 "Largura do quadro da arte no modo Card (limitada a 45% da linha).");
             BadgeScale = cfg.Bind("Layout", "BadgeScale", 0.7f,
                 "Escala do ícone do jogo (tipo/raridade/equipado) que vira selo no canto do card.");
+            HelmFrame = cfg.Bind("Layout", "HelmFrame", 0.55f,
+                "Capacetes: altura do quadro em fração da altura do corpo. Igual para todos (mesma escala). Maior = mais afastado.");
+            HelmOffsetY = cfg.Bind("Layout", "HelmOffsetY", 0.1f,
+                "Capacetes: desloca o centro do quadro para cima (fração do quadro) a partir da cabeça.");
             IconScale = cfg.Bind("Layout", "IconScale", 1.25f,
                 "Modo Icon: tamanho da arte em relação ao ícone original.");
             CardMinRatio = cfg.Bind("Layout", "CardMinRatio", 0.5f,

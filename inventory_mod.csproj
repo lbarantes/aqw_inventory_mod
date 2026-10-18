@@ -15,8 +15,8 @@
        versions/v<Version>-<VersionLabel>/ para comparar versões depois
        (tools/use-version.ps1 troca a DLL instalada). -->
   <PropertyGroup>
-    <Version>0.2.2</Version>
-    <VersionLabel>clone-sem-fantasma</VersionLabel>
+    <Version>0.2.3</Version>
+    <VersionLabel>elmos-mesma-escala</VersionLabel>
   </PropertyGroup>
 
   <PropertyGroup>

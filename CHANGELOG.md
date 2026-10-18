@@ -7,6 +7,16 @@ cópia da DLL em `versions/`. Para trocar a instalada (com o jogo fechado):
 .\tools\use-version.ps1 v0.1.0
 ```
 
+## v0.2.3 — elmos-mesma-escala
+
+- **Capacetes com a mesma escala.** Antes a câmera se ajustava ao tamanho de
+  cada capacete, então os grandes ficavam "longe" e os pequenos "perto". Agora
+  o quadro tem tamanho fixo: uma fração da altura do corpo sem o capacete (o
+  corpo é o mesmo para todos), centrada na cabeça (`GetHelmPlace`).
+- Ajustável em `[Layout]`: `HelmFrame` (0.55, maior = mais afastado) e
+  `HelmOffsetY` (0.1, sobe o centro). Esses valores entram na chave do cache,
+  então mudar refaz as fotos.
+
 ## v0.2.2 — clone-sem-fantasma
 
 - **Corrige o "preview fantasma".** Enquanto carregavam armaduras, classes e
