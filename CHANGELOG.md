@@ -24,6 +24,11 @@ cópia da DLL em `versions/`. Para trocar a instalada (com o jogo fechado):
 - Itens que ficam sem arte agora aparecem no `LogOutput.log` (uma linha
   `[InvThumbs] Sem arte para ...`), para facilitar o diagnóstico.
 
+## v0.2.4 — elmos-clone-nao-trava (branch `v0.2.x`)
+
+- A mesma correção da v0.3.1, aplicada sobre a v0.2.3 (cards por aba, sem a
+  lista mista). Feita para comparar as duas linhas.
+
 ## v0.3.0 — lista-mista
 
 - **Card por item, não por aba.** Na mesma lista, os itens com arte viram card
