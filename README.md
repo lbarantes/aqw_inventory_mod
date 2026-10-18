@@ -29,6 +29,25 @@ no item para ver o preview.
   miniatura de cada item visível. Para achar, pesquise `[InvDump]` em
   `BepInEx/LogOutput.log`.
 - **Shift+F9**: limpa o cache de miniaturas (memória e disco) e recarrega.
+- **Ctrl+F9**: relê o `.cfg`. Feche e reabra o inventário para aplicar.
+
+## Layout Card
+
+No modo `Card` (padrão desde a v0.2), um prefixo em `ItemList.Start`,
+`ScaleTheList` e `AddListItemPrefabs` aumenta `ItemList.fabHeight`, a altura
+fixa que a lista virtualizada usa para posicionar e reciclar as linhas.
+Depois, cada linha é remontada como card (`Cards/CardRow.cs`): quadro de arte
+à esquerda, ícone do jogo como selo e nome à direita.
+
+## Versões
+
+O histórico está em `CHANGELOG.md`, e cada versão tem uma tag git. Para trocar
+a DLL instalada, com o jogo fechado:
+
+```powershell
+.\tools\use-version.ps1            # lista
+.\tools\use-version.ps1 v0.1.0     # instala
+```
 
 ## Configuração
 

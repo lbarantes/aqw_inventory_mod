@@ -42,6 +42,14 @@ namespace AQWMod.InventoryThumbs.Debug
             {
                 if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
                     ThumbnailService.Instance?.ClearAll();
+                else if (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))
+                {
+                    // vale para as próximas listas criadas: feche e reabra o inventário
+                    InvConfig.File.Reload();
+                    _log.LogInfo($"[InvDump] Config relida: Layout={InvConfig.Mode.Value} " +
+                                 $"CardHeight={InvConfig.CardHeight.Value} ArtWidth={InvConfig.ArtWidth.Value} " +
+                                 "— feche e reabra o inventário.");
+                }
                 else
                     Dump();
             }

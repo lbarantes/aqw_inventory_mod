@@ -46,6 +46,8 @@ namespace AQWMod.InventoryThumbs.Thumbnails
 
         private const int CacheFormatVersion = 1;
 
+        private static int TextureSize => Mathf.Clamp(InvConfig.TextureSize.Value, 16, 1024);
+
         private readonly Dictionary<string, Entry> _entries = new Dictionary<string, Entry>();
         private readonly List<Entry> _queue = new List<Entry>();
         private int _active;
@@ -224,7 +226,7 @@ namespace AQWMod.InventoryThumbs.Thumbnails
             if (sprite == null) { Fail(e, "nenhum sprite no bundle"); return; }
 
             Texture2D tex = null;
-            try { tex = SpriteExtractor.CopyToTexture(sprite, Mathf.Max(16, InvConfig.ThumbnailSize.Value)); }
+            try { tex = SpriteExtractor.CopyToTexture(sprite, TextureSize); }
             catch (Exception ex) { Verbose($"cópia falhou ({ex.Message}), usando sprite original"); }
 
             if (tex != null)
@@ -267,7 +269,7 @@ namespace AQWMod.InventoryThumbs.Thumbnails
         {
             using (var md5 = MD5.Create())
             {
-                var hash = md5.ComputeHash(Encoding.UTF8.GetBytes($"v{CacheFormatVersion}|{key}"));
+                var hash = md5.ComputeHash(Encoding.UTF8.GetBytes($"v{CacheFormatVersion}|{TextureSize}|{key}"));
                 var sb = new StringBuilder(32);
                 foreach (var b in hash) sb.Append(b.ToString("x2"));
                 return Path.Combine(_diskDir, sb + ".png");

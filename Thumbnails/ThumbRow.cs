@@ -1,18 +1,22 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using AQWMod.InventoryThumbs.Cards;
 using AQWMod.InventoryThumbs.Core;
 
 namespace AQWMod.InventoryThumbs.Thumbnails
 {
     // ──────────────────────────────────────────────────────────────────────────
-    // Componente colado em cada linha (inventoryListItem) da lista.
+    // Componente colado em cada linha (inventoryListItem) da lista. Liga a
+    // linha ao ThumbnailService e decide onde a arte aparece:
     //
-    // Cria uma Image "__InvThumb__" como filha do ícone genérico da linha,
-    // esticada sobre ele. Quando a miniatura chega, desliga só o componente
-    // Image do ícone (a filha continua renderizando) e liga a miniatura.
-    // Nada do prefab do jogo é alterado além do enabled do ícone, que volta
-    // a true sempre que a linha é reciclada para outro item.
+    //   Modo Card → a linha vira card (CardRow) e a arte vai no quadro grande.
+    //   Modo Icon → uma Image "__InvThumb__" filha do ícone genérico, esticada
+    //               sobre ele; o Image do ícone é desligado enquanto a arte
+    //               aparece e religado quando a linha é reciclada.
+    //
+    // Se a lista não foi escalada (lista não reconhecida ou modo Icon), cai
+    // no modo Icon.
     // ──────────────────────────────────────────────────────────────────────────
 
     internal sealed class ThumbRow : MonoBehaviour
@@ -20,6 +24,7 @@ namespace AQWMod.InventoryThumbs.Thumbnails
         private static readonly HashSet<ThumbRow> All = new HashSet<ThumbRow>();
 
         private inventoryListItem _row;
+        private CardRow _card;
         private Image _thumb;
 
         internal string CurrentKey { get; private set; }
@@ -31,20 +36,37 @@ namespace AQWMod.InventoryThumbs.Thumbnails
         {
             _row = row;
             All.Add(this);
+
+            EnsureCard();
             Hide();
 
             var key = ThumbnailService.KeyFor(row.item);
             CurrentKey = key;
             if (key == null || ThumbnailService.Instance == null) return;
-            if (!EnsureThumb()) return;
+            if (_card == null && !EnsureThumb()) return;
 
             ThumbnailService.Instance.Request(this, row.item, key);
         }
 
+        private void EnsureCard()
+        {
+            if (_card != null || !CardLayout.TryGetHeights(_row, out var oldH, out var newH)) return;
+            _card = GetComponent<CardRow>();
+            if (_card == null) _card = gameObject.AddComponent<CardRow>();
+            _card.Apply(_row, oldH, newH);
+        }
+
         internal void Show(Sprite sprite)
         {
-            if (sprite == null || _row == null || _row.icon == null || !EnsureThumb()) return;
+            if (sprite == null || _row == null) return;
 
+            if (_card != null)
+            {
+                _card.ShowArt(sprite, IsLocked());
+                return;
+            }
+
+            if (_row.icon == null || !EnsureThumb()) return;
             _thumb.sprite  = sprite;
             _thumb.color   = IsLocked() ? new Color(0.5f, 0.5f, 0.5f, 1f) : Color.white;
             _thumb.enabled = true;
@@ -53,14 +75,15 @@ namespace AQWMod.InventoryThumbs.Thumbnails
 
         internal void Hide()
         {
+            if (_card != null && _row != null) _card.ResetFor(_row);
             if (_thumb != null) _thumb.enabled = false;
             if (_row != null && _row.icon != null) _row.icon.enabled = true;
         }
 
         internal string Describe()
         {
-            var shown = _thumb != null && _thumb.enabled;
-            return $"thumb={(shown ? "visível" : "oculta")} key={CurrentKey ?? "-"}";
+            bool shown = _card != null ? _card.ArtVisible : _thumb != null && _thumb.enabled;
+            return $"{(_card != null ? "card" : "ícone")} arte={(shown ? "visível" : "oculta")} key={CurrentKey ?? "-"}";
         }
 
         private bool IsLocked() => _row.item is ShopItem si && si.Locked;

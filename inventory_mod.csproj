@@ -15,8 +15,8 @@
        versions/v<Version>-<VersionLabel>/ para comparar versões depois
        (tools/use-version.ps1 troca a DLL instalada). -->
   <PropertyGroup>
-    <Version>0.1.0</Version>
-    <VersionLabel>miniatura-no-icone</VersionLabel>
+    <Version>0.2.0</Version>
+    <VersionLabel>cards-arte-grande</VersionLabel>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -53,6 +53,10 @@
     </Reference>
     <Reference Include="UnityEngine.CoreModule">
       <HintPath>$(ManagedDir)\UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Unity.TextMeshPro">
+      <HintPath>$(ManagedDir)\Unity.TextMeshPro.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="UnityEngine.UI">

@@ -36,21 +36,44 @@ namespace AQWMod.InventoryThumbs
                 host.AddComponent<ThumbnailService>().Setup(Logger);
 
                 InventoryListItemPatch.Log = Logger;
+                ItemListPatch.Log = Logger;
                 _harmony = new Harmony(PluginInfo.GUID);
-                var target = AccessTools.Method(typeof(inventoryListItem), nameof(inventoryListItem.setItemData));
-                if (target == null)
-                {
-                    Logger.LogError("[InvThumbs] inventoryListItem.setItemData não encontrado — jogo atualizou?");
-                    return;
-                }
-                _harmony.Patch(target, postfix: new HarmonyMethod(typeof(InventoryListItemPatch),
-                                                                   nameof(InventoryListItemPatch.Postfix)));
 
-                Logger.LogInfo($"[InvThumbs] v{PluginInfo.Version} inicializado. Dump={InvConfig.DumpKey.Value}");
+                Patch(typeof(inventoryListItem), nameof(inventoryListItem.setItemData),
+                      postfix: new HarmonyMethod(typeof(InventoryListItemPatch), nameof(InventoryListItemPatch.Postfix)));
+
+                // altura das linhas no modo Card (ver CardLayout)
+                var scale = new HarmonyMethod(typeof(ItemListPatch), nameof(ItemListPatch.Prefix));
+                Patch(typeof(ItemList), "Start", prefix: scale);
+                Patch(typeof(ItemList), nameof(ItemList.ScaleTheList), prefix: scale);
+                Patch(typeof(ItemList), nameof(ItemList.AddListItemPrefabs), prefix: scale);
+
+                Logger.LogInfo($"[InvThumbs] v{PluginInfo.Version} ({PluginInfo.Label}) inicializado. " +
+                               $"Layout={InvConfig.Mode.Value} Dump={InvConfig.DumpKey.Value}");
             }
             catch (Exception ex)
             {
                 Logger.LogError($"[InvThumbs] Falha na inicialização: {ex}");
+            }
+        }
+
+        // cada patch isolado: um método que sumiu numa atualização do jogo não
+        // impede os outros de aplicar
+        private void Patch(Type type, string method, HarmonyMethod prefix = null, HarmonyMethod postfix = null)
+        {
+            try
+            {
+                var target = AccessTools.Method(type, method);
+                if (target == null)
+                {
+                    Logger.LogError($"[InvThumbs] {type.Name}.{method} não encontrado — jogo atualizou?");
+                    return;
+                }
+                _harmony.Patch(target, prefix: prefix, postfix: postfix);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError($"[InvThumbs] Falha ao aplicar patch em {type.Name}.{method}: {ex}");
             }
         }
     }
@@ -59,6 +82,7 @@ namespace AQWMod.InventoryThumbs
     {
         public const string GUID    = "com.aqwmod.inventorythumbs";
         public const string Name    = "AQW Inventory Thumbnails";
-        public const string Version = "0.1.0";
+        public const string Version = "0.2.0";
+        public const string Label   = "cards-arte-grande";
     }
 }
