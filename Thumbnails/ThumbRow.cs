@@ -10,8 +10,8 @@ namespace AQWMod.InventoryThumbs.Thumbnails
     // Componente colado em cada linha (inventoryListItem) da lista. Liga a
     // linha ao ThumbnailService e decide onde a arte aparece:
     //
-    //   Modo Card → a linha vira card (CardRow) e a arte vai no quadro grande;
-    //               nas abas que ficam como lista (Misc/Gems/House) nada muda.
+    //   Modo Card → lista mista (MixedList): a linha vira card (CardRow) se o
+    //               item tem arte, e volta a ser a linha original se não tem.
     //   Modo Icon → uma Image "__InvThumb__" filha do ícone genérico, esticada
     //               sobre ele; o Image do ícone é desligado enquanto a arte
     //               aparece e religado quando a linha é reciclada.
@@ -38,38 +38,47 @@ namespace AQWMod.InventoryThumbs.Thumbnails
             _row = row;
             All.Add(this);
 
-            EnsureCard();
-            Hide();
+            var key   = ThumbnailService.KeyFor(row.item);
+            var mixed = CardLayout.Get(row.il);
 
-            // lista do modo Card que ficou como lista original (Misc/Gems/House):
-            // não mexe em nada
-            if (_card == null && InvConfig.CardMode && CardLayout.IsManaged(row.il))
+            if (mixed != null)
             {
-                CurrentKey = null;
+                // lista mista: card só para item com arte (mesmo critério do
+                // MixedList.WantsCard, que decidiu a altura desta posição)
+                EnsureCard(mixed);
+                _card.SetCard(key != null);
+                Hide();
+                CurrentKey = key;
+                if (key != null && ThumbnailService.Instance != null)
+                    ThumbnailService.Instance.Request(this, row.item, key);
                 return;
             }
 
-            var key = ThumbnailService.KeyFor(row.item);
-            CurrentKey = key;
-            if (key == null || ThumbnailService.Instance == null) return;
-            if (_card == null && !EnsureThumb()) return;
+            Hide();
+            CurrentKey = null;
 
+            // modo Card, mas lista não reconhecida: não mexe
+            if (InvConfig.CardMode) return;
+
+            // modo Icon (v0.1): arte no lugar do ícone pequeno
+            CurrentKey = key;
+            if (key == null || ThumbnailService.Instance == null || !EnsureThumb()) return;
             ThumbnailService.Instance.Request(this, row.item, key);
         }
 
-        private void EnsureCard()
+        private void EnsureCard(MixedList mixed)
         {
-            if (_card != null || !CardLayout.TryGetHeights(_row, out var oldH, out var newH)) return;
+            if (_card != null) return;
             _card = GetComponent<CardRow>();
             if (_card == null) _card = gameObject.AddComponent<CardRow>();
-            _card.Apply(_row, oldH, newH);
+            _card.Build(_row, mixed.PlainHeight, MixedList.CardHeight);
         }
 
         internal void Show(Sprite sprite)
         {
             if (sprite == null || _row == null) return;
 
-            if (_card != null)
+            if (_card != null && _card.IsCard)
             {
                 _card.ShowArt(sprite, IsLocked());
                 return;

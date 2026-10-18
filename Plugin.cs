@@ -43,11 +43,14 @@ namespace AQWMod.InventoryThumbs
                 Patch(typeof(inventoryListItem), nameof(inventoryListItem.setItemData),
                       postfix: new HarmonyMethod(typeof(InventoryListItemPatch), nameof(InventoryListItemPatch.Postfix)));
 
-                // altura das linhas no modo Card (ver CardLayout)
-                var scale = new HarmonyMethod(typeof(ItemListPatch), nameof(ItemListPatch.Prefix));
-                Patch(typeof(ItemList), "Start", prefix: scale);
-                Patch(typeof(ItemList), nameof(ItemList.ScaleTheList), prefix: scale);
-                Patch(typeof(ItemList), nameof(ItemList.AddListItemPrefabs), prefix: scale);
+                // modo Card: lista mista com altura por item (ver MixedList)
+                var attach = new HarmonyMethod(typeof(ItemListPatch), nameof(ItemListPatch.Prefix));
+                Patch(typeof(ItemList), "Start", prefix: attach);
+                Patch(typeof(ItemList), nameof(ItemList.AddListItemPrefabs), prefix: attach);
+                Patch(typeof(ItemList), nameof(ItemList.ScaleTheList), prefix: attach,
+                      postfix: new HarmonyMethod(typeof(ItemListPatch), nameof(ItemListPatch.PostfixScale)));
+                Patch(typeof(inventoryListItem), "Update",
+                      prefix: new HarmonyMethod(typeof(ItemListPatch), nameof(ItemListPatch.PrefixRowUpdate)));
 
                 Logger.LogInfo($"[InvThumbs] v{PluginInfo.Version} ({PluginInfo.Label}) inicializado. " +
                                $"Layout={InvConfig.Mode.Value} Dump={InvConfig.DumpKey.Value}");
@@ -83,7 +86,7 @@ namespace AQWMod.InventoryThumbs
     {
         public const string GUID    = "com.aqwmod.inventorythumbs";
         public const string Name    = "AQW Inventory Thumbnails";
-        public const string Version = "0.2.3";
-        public const string Label   = "elmos-mesma-escala";
+        public const string Version = "0.3.0";
+        public const string Label   = "lista-mista";
     }
 }

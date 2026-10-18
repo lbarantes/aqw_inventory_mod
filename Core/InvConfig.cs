@@ -23,7 +23,6 @@ namespace AQWMod.InventoryThumbs.Core
         internal static ConfigEntry<float>  ArtWidth       { get; private set; }
         internal static ConfigEntry<float>  BadgeScale     { get; private set; }
         internal static ConfigEntry<float>  IconScale      { get; private set; }
-        internal static ConfigEntry<float>  CardMinRatio   { get; private set; }
         internal static ConfigEntry<float>  HelmFrame      { get; private set; }
         internal static ConfigEntry<float>  HelmOffsetY    { get; private set; }
 
@@ -56,9 +55,9 @@ namespace AQWMod.InventoryThumbs.Core
                 "Desiste de um bundle que não terminou de carregar nesse tempo.");
 
             Mode = cfg.Bind("Layout", "Mode", LayoutMode.Card,
-                "Card = linha alta com arte grande; Icon = arte no lugar do ícone pequeno (linha original).");
+                "Card = item com arte vira card (linha alta, arte grande) e o resto fica como linha original; Icon = arte no lugar do ícone pequeno.");
             CardHeight = cfg.Bind("Layout", "CardHeight", 150f,
-                "Altura de cada linha no modo Card (a original do jogo é ~73).");
+                "Altura das linhas com arte no modo Card (a original do jogo é ~73). Itens sem arte mantêm a altura original.");
             ArtWidth = cfg.Bind("Layout", "ArtWidth", 200f,
                 "Largura do quadro da arte no modo Card (limitada a 45% da linha).");
             BadgeScale = cfg.Bind("Layout", "BadgeScale", 0.7f,
@@ -69,8 +68,6 @@ namespace AQWMod.InventoryThumbs.Core
                 "Capacetes: desloca o centro do quadro para cima (fração do quadro) a partir da cabeça.");
             IconScale = cfg.Bind("Layout", "IconScale", 1.25f,
                 "Modo Icon: tamanho da arte em relação ao ícone original.");
-            CardMinRatio = cfg.Bind("Layout", "CardMinRatio", 0.5f,
-                "Fração mínima de itens com arte para a lista virar card. Abaixo disso (Misc, Gems, House) fica a lista original.");
 
             ShowWeapons = cfg.Bind("Types", "Weapons", true, "Armas.");
             ShowCapes   = cfg.Bind("Types", "Capes",   true, "Capas.");

@@ -33,11 +33,12 @@ no item para ver o preview.
 
 ## Layout Card
 
-No modo `Card` (padrão desde a v0.2), um prefixo em `ItemList.Start`,
-`ScaleTheList` e `AddListItemPrefabs` aumenta `ItemList.fabHeight`, a altura
-fixa que a lista virtualizada usa para posicionar e reciclar as linhas.
-Depois, cada linha é remontada como card (`Cards/CardRow.cs`): quadro de arte
-à esquerda, ícone do jogo como selo e nome à direita.
+No modo `Card` (padrão), a lista é mista: um item com arte vira card (quadro
+de arte à esquerda, ícone do jogo como selo, nome à direita) e um item sem
+arte fica na linha original do jogo. A lista do jogo só sabe trabalhar com
+altura fixa, então o `Cards/MixedList.cs` substitui a reciclagem de linhas
+(`inventoryListItem.Update`) por uma com altura por item. `Cards/CardRow.cs`
+guarda as duas geometrias de cada linha e alterna entre elas.
 
 ## Versões
 
@@ -60,6 +61,5 @@ simultâneos, ligar e desligar por tipo de item e ativar `VerboseLog`.
 - Capacetes, armaduras e classes são fotografados vestidos num clone do seu
   personagem (rosto, cabelo e gênero são os seus), igual ao preview do jogo.
   Pets e itens de casa são fotografados montados (`Thumbnails/Studio.cs`).
-- A altura da linha é a do jogo, então a miniatura fica no espaço do ícone. O
-  dump da F9 traz os tamanhos para, se for o caso, aumentar a linha
-  (`ItemList.fabHeight`).
+- Gamepad: a rolagem automática até o item selecionado supõe altura fixa e
+  pode parar fora do lugar nas listas mistas.

@@ -45,27 +45,106 @@ namespace AQWMod.InventoryThumbs.Cards
         private Image   _placeholder;   // ícone de tipo enquanto não há arte
         private Image[] _borders;
 
-        internal bool Applied { get; private set; }
+        private RectTransform _panel;
+        private Geometry _plain, _card;
+
+        internal bool Built  { get; private set; }
+        internal bool IsCard { get; private set; }
+
+        // ── Geometria salva (para alternar card ⇄ linha original) ─────────────
+
+        // Tudo que a montagem do card altera na linha. A mesma linha é
+        // reciclada para itens com e sem arte (lista mista), então os dois
+        // estados ficam guardados e SetCard só reaplica um ou outro.
+        private sealed class Geometry
+        {
+            internal Vector2 RowSize;
+            internal Vector2[] FixedChildSizes;      // filhos diretos com âncora vertical fixa
+            internal Vector3 IconScale, IconPos;
+            internal Vector2 NameMin, NameMax;
+            internal TextWrappingModes NameWrap;
+            internal TextOverflowModes NameOverflow;
+        }
+
+        private RectTransform[] _fixedChildren;
+        private RectTransform _icon;
+        private inventoryListItem _row;
+
+        private Geometry Capture()
+        {
+            var g = new Geometry
+            {
+                RowSize = ((RectTransform)_row.transform).sizeDelta,
+                FixedChildSizes = new Vector2[_fixedChildren.Length],
+            };
+            for (int i = 0; i < _fixedChildren.Length; i++) g.FixedChildSizes[i] = _fixedChildren[i].sizeDelta;
+            if (_icon != null) { g.IconScale = _icon.localScale; g.IconPos = _icon.localPosition; }
+            if (_row.itemName != null)
+            {
+                var n = _row.itemName.rectTransform;
+                g.NameMin = n.offsetMin; g.NameMax = n.offsetMax;
+                g.NameWrap = _row.itemName.textWrappingMode;
+                g.NameOverflow = _row.itemName.overflowMode;
+            }
+            return g;
+        }
+
+        private void Restore(Geometry g)
+        {
+            ((RectTransform)_row.transform).sizeDelta = g.RowSize;
+            for (int i = 0; i < _fixedChildren.Length; i++) _fixedChildren[i].sizeDelta = g.FixedChildSizes[i];
+            if (_icon != null) { _icon.localScale = g.IconScale; _icon.localPosition = g.IconPos; }
+            if (_row.itemName != null)
+            {
+                var n = _row.itemName.rectTransform;
+                n.offsetMin = g.NameMin; n.offsetMax = g.NameMax;
+                _row.itemName.textWrappingMode = g.NameWrap;
+                _row.itemName.overflowMode = g.NameOverflow;
+            }
+        }
 
         // ── Montagem (uma vez por linha) ──────────────────────────────────────
 
-        internal void Apply(inventoryListItem row, float oldH, float newH)
+        internal void Build(inventoryListItem row, float plainH, float cardH)
         {
-            if (Applied) return;
-            Applied = true;
+            if (Built) return;
+            Built = true;
+            _row  = row;
 
-            var rowRt     = (RectTransform)row.transform;
             var container = row.transform.Find(ContainerName) as RectTransform;
             if (container == null) return;
+            _icon = container.Find("ItemIcon") as RectTransform;
+
+            var fixedList = new System.Collections.Generic.List<RectTransform>();
+            for (int i = 0; i < row.transform.childCount; i++)
+                if (row.transform.GetChild(i) is RectTransform c && Mathf.Approximately(c.anchorMin.y, c.anchorMax.y))
+                    fixedList.Add(c);   // o ListItemContainer
+            _fixedChildren = fixedList.ToArray();
+
+            _plain = Capture();
+            ApplyCardGeometry(row, container, plainH, cardH);
+            _card = Capture();
+
+            Restore(_plain);
+            _panel.gameObject.SetActive(false);
+            IsCard = false;
+        }
+
+        internal void SetCard(bool on)
+        {
+            if (!Built || _panel == null || on == IsCard) return;
+            IsCard = on;
+            Restore(on ? _card : _plain);
+            _panel.gameObject.SetActive(on);
+        }
+
+        private void ApplyCardGeometry(inventoryListItem row, RectTransform container, float oldH, float newH)
+        {
+            var rowRt = (RectTransform)row.transform;
 
             float dy = newH - oldH;
             rowRt.sizeDelta += new Vector2(0f, dy);
-            for (int i = 0; i < row.transform.childCount; i++)
-            {
-                // filhos diretos com âncora vertical fixa (o ListItemContainer)
-                if (row.transform.GetChild(i) is RectTransform c && Mathf.Approximately(c.anchorMin.y, c.anchorMax.y))
-                    c.sizeDelta += new Vector2(0f, dy);
-            }
+            foreach (var c in _fixedChildren) c.sizeDelta += new Vector2(0f, dy);
 
             var r     = rowRt.rect;
             float artH = newH - 2f * Pad;
@@ -73,8 +152,8 @@ namespace AQWMod.InventoryThumbs.Cards
             float left = r.xMin + Pad;
             var center = new Vector2(left + artW / 2f, r.center.y);
 
-            var panel = BuildPanel(container, artW, artH);
-            panel.position = rowRt.TransformPoint(center);
+            _panel = BuildPanel(container, artW, artH);
+            _panel.position = rowRt.TransformPoint(center);
 
             MoveBadge(rowRt, container, left, r.center.y + artH / 2f);
             MoveName(row, rowRt, left + artW + NameGap, newH);

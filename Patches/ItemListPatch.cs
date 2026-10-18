@@ -4,8 +4,13 @@ using AQWMod.InventoryThumbs.Cards;
 
 namespace AQWMod.InventoryThumbs.Patches
 {
-    // Prefixo comum para ItemList.Start, ScaleTheList e AddListItemPrefabs:
-    // troca fabHeight pela altura do card antes que o jogo use o valor.
+    // Modo Card (lista mista, ver MixedList):
+    //   - prefixo em ItemList.Start / ScaleTheList / AddListItemPrefabs: cola o
+    //     MixedList na lista antes de ela ser montada;
+    //   - postfix em ScaleTheList: recalcula alturas e altura do conteúdo
+    //     (o jogo acabou de somar fabHeight por item);
+    //   - prefixo em inventoryListItem.Update: desliga a reciclagem de altura
+    //     fixa do jogo nas listas gerenciadas (o MixedList faz no lugar).
     internal static class ItemListPatch
     {
         internal static ManualLogSource Log;
@@ -13,16 +18,27 @@ namespace AQWMod.InventoryThumbs.Patches
 
         internal static void Prefix(ItemList __instance)
         {
-            try
-            {
-                CardLayout.Prepare(__instance);
-            }
-            catch (Exception ex)
-            {
-                if (_errorLogged) return;
-                _errorLogged = true;
-                Log?.LogError($"[InvThumbs] Erro no patch de ItemList: {ex}");
-            }
+            try { CardLayout.Prepare(__instance); }
+            catch (Exception ex) { LogOnce(ex); }
+        }
+
+        internal static void PostfixScale(ItemList __instance)
+        {
+            try { CardLayout.Prepare(__instance)?.Rebuild(); }
+            catch (Exception ex) { LogOnce(ex); }
+        }
+
+        internal static bool PrefixRowUpdate(inventoryListItem __instance)
+        {
+            try { return CardLayout.Get(__instance.il) == null; }
+            catch { return true; }
+        }
+
+        private static void LogOnce(Exception ex)
+        {
+            if (_errorLogged) return;
+            _errorLogged = true;
+            Log?.LogError($"[InvThumbs] Erro no patch de ItemList: {ex}");
         }
     }
 }

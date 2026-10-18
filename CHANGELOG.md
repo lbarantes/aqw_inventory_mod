@@ -7,6 +7,23 @@ cópia da DLL em `versions/`. Para trocar a instalada (com o jogo fechado):
 .\tools\use-version.ps1 v0.1.0
 ```
 
+## v0.3.0 — lista-mista
+
+- **Card por item, não por aba.** Na mesma lista, os itens com arte viram card
+  (~150px) e os sem arte (house, itens de casa, misc, gems, pets sem arte
+  convertida) ficam na linha original do jogo (~73px). Isso aproveita melhor o
+  espaço no inventário principal ("Todas").
+- **Aba de pets:** antes a aba inteira ficava em lista, porque a maioria dos
+  pets não tem arte e a regra de "metade dos itens" (`CardMinRatio`, removida)
+  não era atingida. Agora cada pet com arte vira card.
+- Como funciona: a lista do jogo só suporta altura fixa (`fabHeight`). O
+  `MixedList` (`Cards/MixedList.cs`) substitui a reciclagem de linhas do jogo
+  (`inventoryListItem.Update`, desligado nas listas gerenciadas) por uma com
+  altura por item. Cada linha reciclada alterna entre card e linha original
+  (`CardRow.SetCard`) conforme o item que recebe.
+- Limitação: ao navegar com gamepad, a rolagem automática até o item
+  selecionado ainda supõe altura fixa e pode parar fora do lugar.
+
 ## v0.2.3 — elmos-mesma-escala
 
 - **Capacetes com a mesma escala.** Antes a câmera se ajustava ao tamanho de
