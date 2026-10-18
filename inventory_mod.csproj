@@ -1,0 +1,88 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <Nullable>disable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>AQWInventoryThumbs</AssemblyName>
+    <RootNamespace>AQWMod.InventoryThumbs</RootNamespace>
+    <Optimize>true</Optimize>
+    <NoWarn>CS8601;CS8602;CS8600;CS8603;CS8618;CS0184</NoWarn>
+  </PropertyGroup>
+
+  <!-- Versão atual. Ao mudar, atualize também PluginInfo.Version (Plugin.cs)
+       e o CHANGELOG.md. Cada build guarda uma cópia da DLL em
+       versions/v<Version>-<VersionLabel>/ para comparar versões depois
+       (tools/use-version.ps1 troca a DLL instalada). -->
+  <PropertyGroup>
+    <Version>0.1.0</Version>
+    <VersionLabel>miniatura-no-icone</VersionLabel>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <GameRoot>$(MSBuildProjectDirectory)\..</GameRoot>
+    <ManagedDir>$(GameRoot)\AdventureQuest Worlds Infinity_Data\Managed</ManagedDir>
+    <BepInExCore>$(GameRoot)\BepInEx\core</BepInExCore>
+    <BepInExPlugins>$(GameRoot)\BepInEx\plugins</BepInExPlugins>
+  </PropertyGroup>
+
+  <!-- Referências locais: mesmas DLLs que o jogo carrega. Assembly-CSharp é
+       referenciado direto (os tipos usados — inventoryListItem, Item,
+       AssetBundleLoader, WeaponSlots... — são todos públicos). -->
+  <ItemGroup>
+    <!-- módulos Unity do jogo são compilados contra netstandard 2.1 -->
+    <Reference Include="netstandard">
+      <HintPath>$(ManagedDir)\netstandard.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="BepInEx">
+      <HintPath>$(BepInExCore)\BepInEx.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="0Harmony">
+      <HintPath>$(BepInExCore)\0Harmony.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>$(ManagedDir)\Assembly-CSharp.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine">
+      <HintPath>$(ManagedDir)\UnityEngine.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(ManagedDir)\UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UI">
+      <HintPath>$(ManagedDir)\UnityEngine.UI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UIModule">
+      <HintPath>$(ManagedDir)\UnityEngine.UIModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.AssetBundleModule">
+      <HintPath>$(ManagedDir)\UnityEngine.AssetBundleModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.ImageConversionModule">
+      <HintPath>$(ManagedDir)\UnityEngine.ImageConversionModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.InputLegacyModule">
+      <HintPath>$(ManagedDir)\UnityEngine.InputLegacyModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <!-- Copia a DLL compilada para BepInEx/plugins e guarda uma cópia em dist/ -->
+  <Target Name="DeployPlugin" AfterTargets="Build" Condition="'$(SkipDeploy)' != 'true'">
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(MSBuildProjectDirectory)\dist" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(BepInExPlugins)" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(MSBuildProjectDirectory)\versions\v$(Version)-$(VersionLabel)" SkipUnchangedFiles="true" />
+    <Message Text="[Deploy] $(AssemblyName).dll v$(Version)-$(VersionLabel) copiado para $(BepInExPlugins)" Importance="high" />
+  </Target>
+
+</Project>
