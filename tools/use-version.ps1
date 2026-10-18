@@ -1,7 +1,10 @@
-# Troca a versão instalada do AQW Inventory Thumbnails.
+﻿# Troca a versão instalada do AQW Inventory Thumbnails.
 #
-#   .\tools\use-version.ps1              -> lista as versões guardadas
-#   .\tools\use-version.ps1 v0.1.0       -> instala a versão que começa com "v0.1.0"
+#   powershell -ExecutionPolicy Bypass -File tools\use-version.ps1         -> lista as versões
+#   powershell -ExecutionPolicy Bypass -File tools\use-version.ps1 v0.1.0  -> instala a que começa com "v0.1.0"
+#
+# (-ExecutionPolicy Bypass: o Windows bloqueia .ps1 por padrão. Arquivo salvo
+#  com BOM para o PowerShell 5.1 ler os acentos.)
 #
 # Feche o jogo antes (a DLL fica travada enquanto ele roda).
 param([string]$Name)

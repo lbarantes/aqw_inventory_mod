@@ -46,8 +46,8 @@ O histórico está em `CHANGELOG.md`, e cada versão tem uma tag git. Para troca
 a DLL instalada, com o jogo fechado:
 
 ```powershell
-.\tools\use-version.ps1            # lista
-.\tools\use-version.ps1 v0.1.0     # instala
+powershell -ExecutionPolicy Bypass -File tools\use-version.ps1          # lista
+powershell -ExecutionPolicy Bypass -File tools\use-version.ps1 v0.1.0   # instala
 ```
 
 ## Configuração

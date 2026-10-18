@@ -4,7 +4,7 @@ Cada versão tem um nome descritivo, uma tag git (`v<versão>-<nome>`) e uma
 cópia da DLL em `versions/`. Para trocar a instalada (com o jogo fechado):
 
 ```powershell
-.\tools\use-version.ps1 v0.1.0
+powershell -ExecutionPolicy Bypass -File tools\use-version.ps1 v0.1.0
 ```
 
 ## v0.3.1 — clone-nao-trava
