@@ -42,6 +42,7 @@ namespace AQWMod.InventoryThumbs.Cards
         private static readonly Color PanelColor = new Color(0f, 0f, 0f, 0.45f);
 
         private Image   _art;
+        private Image   _placeholder;   // ícone de tipo enquanto não há arte
         private Image[] _borders;
 
         internal bool Applied { get; private set; }
@@ -110,6 +111,15 @@ namespace AQWMod.InventoryThumbs.Cards
             _art.preserveAspect = true;
             _art.raycastTarget  = false;
             _art.enabled        = false;
+
+            var ph = NewChild("__InvPlaceholder__", panel);
+            ph.anchorMin = ph.anchorMax = ph.pivot = new Vector2(0.5f, 0.5f);
+            ph.sizeDelta = new Vector2(Mathf.Min(56f, w - 12f), Mathf.Min(56f, h - 12f));
+            _placeholder = ph.gameObject.AddComponent<Image>();
+            _placeholder.preserveAspect = true;
+            _placeholder.raycastTarget  = false;
+            _placeholder.color          = new Color(1f, 1f, 1f, 0.35f);
+            _placeholder.enabled        = false;
             return panel;
         }
 
@@ -177,6 +187,11 @@ namespace AQWMod.InventoryThumbs.Cards
         internal void ResetFor(inventoryListItem row)
         {
             if (_art != null) _art.enabled = false;
+            if (_placeholder != null)
+            {
+                _placeholder.sprite  = row.icon != null ? row.icon.sprite : null;
+                _placeholder.enabled = _placeholder.sprite != null;
+            }
 
             var c = row.rarity != null ? row.rarity.color : Color.gray;
             c.a = 1f;
@@ -190,6 +205,7 @@ namespace AQWMod.InventoryThumbs.Cards
             _art.sprite  = sprite;
             _art.color   = locked ? new Color(0.5f, 0.5f, 0.5f, 1f) : Color.white;
             _art.enabled = true;
+            if (_placeholder != null) _placeholder.enabled = false;
         }
 
         internal bool ArtVisible => _art != null && _art.enabled;

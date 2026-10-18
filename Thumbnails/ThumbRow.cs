@@ -10,7 +10,8 @@ namespace AQWMod.InventoryThumbs.Thumbnails
     // Componente colado em cada linha (inventoryListItem) da lista. Liga a
     // linha ao ThumbnailService e decide onde a arte aparece:
     //
-    //   Modo Card → a linha vira card (CardRow) e a arte vai no quadro grande.
+    //   Modo Card → a linha vira card (CardRow) e a arte vai no quadro grande;
+    //               nas abas que ficam como lista (Misc/Gems/House) nada muda.
     //   Modo Icon → uma Image "__InvThumb__" filha do ícone genérico, esticada
     //               sobre ele; o Image do ícone é desligado enquanto a arte
     //               aparece e religado quando a linha é reciclada.
@@ -39,6 +40,14 @@ namespace AQWMod.InventoryThumbs.Thumbnails
 
             EnsureCard();
             Hide();
+
+            // lista do modo Card que ficou como lista original (Misc/Gems/House):
+            // não mexe em nada
+            if (_card == null && InvConfig.CardMode && CardLayout.IsManaged(row.il))
+            {
+                CurrentKey = null;
+                return;
+            }
 
             var key = ThumbnailService.KeyFor(row.item);
             CurrentKey = key;

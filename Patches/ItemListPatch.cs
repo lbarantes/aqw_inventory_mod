@@ -15,7 +15,7 @@ namespace AQWMod.InventoryThumbs.Patches
         {
             try
             {
-                CardLayout.EnsureScaled(__instance);
+                CardLayout.Prepare(__instance);
             }
             catch (Exception ex)
             {

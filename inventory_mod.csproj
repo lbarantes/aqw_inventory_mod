@@ -15,8 +15,8 @@
        versions/v<Version>-<VersionLabel>/ para comparar versões depois
        (tools/use-version.ps1 troca a DLL instalada). -->
   <PropertyGroup>
-    <Version>0.2.0</Version>
-    <VersionLabel>cards-arte-grande</VersionLabel>
+    <Version>0.2.1</Version>
+    <VersionLabel>cards-pets-elmos-armaduras</VersionLabel>
   </PropertyGroup>
 
   <PropertyGroup>

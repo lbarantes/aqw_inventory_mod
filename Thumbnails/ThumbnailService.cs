@@ -67,19 +67,64 @@ namespace AQWMod.InventoryThumbs.Thumbnails
 
         // ── Chave / elegibilidade ─────────────────────────────────────────────
 
+        // Como a arte é obtida — espelha PreviewSpriteImage.DetermineDisplayedObject
+        internal enum Strategy
+        {
+            Sprite,   // arma/capa: sprite único do prefab (WeaponSlots/CapeSlots)
+            Object,   // pet/item de casa: prefab de várias peças fotografado no Studio
+            Clone,    // capacete/armadura/classe: clone do personagem vestindo o item
+        }
+
+        internal static Strategy StrategyFor(Item item)
+        {
+            switch (item.EquipSpot)
+            {
+                case EquipSpots.Head:
+                case EquipSpots.Armor:
+                case EquipSpots.Class:     return Strategy.Clone;
+                case EquipSpots.Pet:
+                case EquipSpots.House:
+                case EquipSpots.HouseItem:
+                case EquipSpots.GuildItem: return Strategy.Object;
+                default:                   return Strategy.Sprite;
+            }
+        }
+
+        // tipos que ficam sempre como lista (aba Misc / Gems): sem arte própria
+        private static bool IsMiscType(iType t)
+        {
+            switch (t)
+            {
+                case iType.None: case iType.Item: case iType.Note: case iType.QuestItem:
+                case iType.Resource: case iType.Enhancement: case iType.ServerUse:
+                case iType.ClientUse: case iType.Misc: case iType.Elixir:
+                case iType.Pattern: case iType.Spellstone: case iType.Trait:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
         internal static string KeyFor(Item item)
         {
             if (item == null || item.Bundle == null || string.IsNullOrEmpty(item.Bundle.Filename))
                 return null;
+            if (IsMiscType(item.ItemType)) return null;
             if (!CategoryEnabled(item.EquipSpot)) return null;
-            if (item.EquipSpot != EquipSpots.Back && string.IsNullOrEmpty(item.PrefabName))
+
+            var strategy = StrategyFor(item);
+            if (strategy != Strategy.Clone && item.EquipSpot != EquipSpots.Back
+                && string.IsNullOrEmpty(item.PrefabName))
                 return null;
 
             string file;
             try   { file = item.Bundle.VersionedFileName; }
             catch { file = item.Bundle.Filename; }
-            return $"{file}|{item.PrefabName}|{(int)item.EquipSpot}";
+            // estratégia na chave: mudar a forma de extrair invalida o cache antigo
+            return $"{strategy}{StrategyVersion(strategy)}|{file}|{item.PrefabName}|{(int)item.EquipSpot}";
         }
+
+        private static int StrategyVersion(Strategy s) => s == Strategy.Sprite ? 1 : 2;
 
         private static bool CategoryEnabled(EquipSpots spot)
         {
@@ -93,7 +138,7 @@ namespace AQWMod.InventoryThumbs.Thumbnails
                 case EquipSpots.Pet:       return InvConfig.ShowPets.Value;
                 case EquipSpots.House:
                 case EquipSpots.HouseItem:
-                case EquipSpots.GuildItem: return InvConfig.ShowHouse.Value;
+                case EquipSpots.GuildItem: return InvConfig.HouseInCards.Value;
                 default:                   return InvConfig.ShowOthers.Value;
             }
         }
@@ -175,49 +220,219 @@ namespace AQWMod.InventoryThumbs.Thumbnails
             _active++;
             e.State = State.Loading;
 
+            IEnumerator job;
+            switch (StrategyFor(e.Item))
+            {
+                case Strategy.Clone:  job = LoadClone(e);  break;
+                case Strategy.Object: job = LoadObject(e); break;
+                default:              job = LoadSprite(e); break;
+            }
+
+            // roda o job sem deixar uma exceção travar _active
+            while (true)
+            {
+                object current;
+                try
+                {
+                    if (!job.MoveNext()) break;
+                    current = job.Current;
+                }
+                catch (Exception ex)
+                {
+                    if (e.State == State.Loading) Fail(e, ex.Message);
+                    break;
+                }
+                yield return current;
+            }
+            if (e.State == State.Loading) Fail(e, "sem resultado");
+
+            _active--;
+            Deliver(e);
+        }
+
+        // ── Bundle ────────────────────────────────────────────────────────────
+
+        // Carrega o bundle com o AssetBundleLoader do jogo. Quem recebe o
+        // loader é responsável pelo Dispose (sem ele, o finalizer do jogo loga
+        // warning e manda evento de erro pro analytics).
+        private static IEnumerator LoadBundle(Item item, Action<AssetBundleLoader, string> done)
+        {
             AssetBundleLoader loader = null;
-            bool   done  = false;
-            string error = null;
+            bool   finished = false;
+            string error    = null;
 
             try
             {
-                loader = new AssetBundleLoader(e.Item.Bundle);
-                loader.onComplete += _ => done = true;
-                loader.onError    += msg => { error = msg ?? "erro"; done = true; };
+                loader = new AssetBundleLoader(item.Bundle);
+                loader.onComplete += _ => finished = true;
+                loader.onError    += msg => { error = msg ?? "erro"; finished = true; };
                 loader.Load();   // pode completar na hora se o bundle já estiver carregado
             }
             catch (Exception ex)
             {
-                error = ex.Message;
-                done  = true;
+                error    = ex.Message;
+                finished = true;
             }
 
             float waited = 0f, timeout = InvConfig.LoadTimeout.Value;
-            while (!done && waited < timeout)
+            while (!finished && waited < timeout)
             {
                 waited += Time.unscaledDeltaTime;
                 yield return null;
             }
 
+            if (!finished) error = "timeout";
+            if (error != null)
+            {
+                try { loader?.Dispose(); } catch { }
+                loader = null;
+            }
+            done(loader, error);
+        }
+
+        private static IEnumerator WaitForStudio()
+        {
+            while (Studio.Instance != null && Studio.Instance.Busy) yield return null;
+            Studio.Instance?.Acquire();
+        }
+
+        // ── Estratégia Sprite (armas, capas) ──────────────────────────────────
+
+        private IEnumerator LoadSprite(Entry e)
+        {
+            AssetBundleLoader loader = null;
+            string error = null;
+            yield return LoadBundle(e.Item, (l, err) => { loader = l; error = err; });
+            if (error != null) { Fail(e, error); yield break; }
+
+            try     { Extract(e, loader); }
+            finally { try { loader.Dispose(); } catch { } }
+        }
+
+        // ── Estratégia Object (pets, itens de casa) ───────────────────────────
+
+        private IEnumerator LoadObject(Entry e)
+        {
+            AssetBundleLoader loader = null;
+            string error = null;
+            yield return LoadBundle(e.Item, (l, err) => { loader = l; error = err; });
+            if (error != null) { Fail(e, error); yield break; }
+
+            yield return WaitForStudio();
+            GameObject inst = null;
             try
             {
-                if (!done) error = "timeout";
-                if (error == null) Extract(e, loader);
-                else Fail(e, error);
-            }
-            catch (Exception ex)
-            {
-                Fail(e, ex.Message);
+                var prefab = loader.getGameObject(e.Item.PrefabName);
+                if (prefab == null) { Fail(e, $"prefab '{e.Item.PrefabName}' não está no bundle"); yield break; }
+
+                inst = Instantiate(prefab, Studio.Instance.Stage, false);
+                inst.transform.localPosition = Vector3.zero;
+                Studio.Instance.SetLayerRecursive(inst, LayerMask.NameToLayer("RenderTextures"));
+
+                // deixa Awake/Start/Animator posicionarem as peças
+                yield return null;
+                yield return null;
+
+                Texture2D tex = null;
+                yield return Studio.Instance.Shoot(inst, null, (t, err) => { tex = t; error = err; });
+                if (tex != null) Finish(e, tex, "studio:objeto");
+                else Fail(e, error ?? "foto falhou");
             }
             finally
             {
-                // sempre devolver a referência: sem Dispose o finalizer do jogo
-                // loga warning e manda evento de erro para o analytics
-                try { loader?.Dispose(); } catch { }
-                _active--;
+                if (inst != null) Destroy(inst);
+                Studio.Instance?.Release();
+                try { loader.Dispose(); } catch { }
+            }
+        }
+
+        // ── Estratégia Clone (capacete, armadura, classe) ─────────────────────
+
+        // Mesmo caminho do PreviewSpriteImage.ShowPlayerClone: um Player clone
+        // do personagem com só o item (e, para capacete, a armadura/classe
+        // atual, como o jogo faz). O clone carrega os próprios bundles.
+        private IEnumerator LoadClone(Entry e)
+        {
+            var main = Entity.mainPlayer;
+            if (main == null) { Fail(e, "personagem não carregado"); yield break; }
+
+            yield return WaitForStudio();
+            Player clone = null;
+            try
+            {
+                var equips = new Dictionary<EquipSpots, EquipItem> { { e.Item.EquipSpot, e.Item } };
+                if (e.Item.EquipSpot == EquipSpots.Head)
+                {
+                    if (main.Armor != null)      equips[EquipSpots.Armor] = main.Armor;
+                    else if (main.Class != null) equips[EquipSpots.Class] = main.Class;
+                }
+
+                GameObject loaded = null;
+                clone = new Player(main, Studio.Instance.Stage, equips);
+                clone.showHelm = true;
+                clone.OnGameObjectLoaded += (id, go) => loaded = go;
+                clone.createAvatar();
+
+                float waited = 0f, timeout = InvConfig.LoadTimeout.Value;
+                while (loaded == null && waited < timeout)
+                {
+                    waited += Time.unscaledDeltaTime;
+                    yield return null;
+                }
+                if (loaded == null) { Fail(e, "clone não carregou (timeout)"); yield break; }
+
+                // peças do item podem terminar de chegar logo depois
+                float settle = 0f;
+                while (settle < 0.35f) { settle += Time.unscaledDeltaTime; yield return null; }
+
+                var root = clone.getGameObject() ?? loaded;
+                Func<Bounds?> focus = null;
+                if (e.Item.EquipSpot == EquipSpots.Head)
+                    focus = () => HelmBounds(clone, root);
+
+                Texture2D tex = null;
+                string error = null;
+                yield return Studio.Instance.Shoot(root, focus, (t, err) => { tex = t; error = err; });
+                if (tex != null) Finish(e, tex, "studio:clone");
+                else Fail(e, error ?? "foto falhou");
+            }
+            finally
+            {
+                try { clone?.Dispose(); } catch { }   // Dispose destrói o GameObject do clone
+                Studio.Instance?.Release();
+            }
+        }
+
+        // Área do capacete: renderers sob CC.GetHelmPlace(); se não houver,
+        // o terço de cima do personagem (cabeça).
+        private static Bounds? HelmBounds(Player clone, GameObject root)
+        {
+            var cc = (clone.GetAvatar() as HumanoidAvatar)?.CC;
+            var place = cc != null ? cc.GetHelmPlace() : null;
+            var b = place != null ? Studio.RendererBounds(place) : null;
+            if (b != null)
+            {
+                var hb = b.Value;
+                hb.Expand(new Vector3(hb.size.x * 0.15f, hb.size.y * 0.15f, 0f));
+                return hb;
             }
 
-            Deliver(e);
+            var full = Studio.RendererBounds(root);
+            if (full == null) return null;
+            var f = full.Value;
+            float h = f.size.y * 0.4f;
+            return new Bounds(new Vector3(f.center.x, f.max.y - h / 2f, f.center.z), new Vector3(f.size.x, h, f.size.z));
+        }
+
+        private void Finish(Entry e, Texture2D tex, string source)
+        {
+            e.Sprite = SpriteExtractor.MakeSprite(tex);
+            e.Owned  = true;
+            e.State  = State.Ready;
+            e.Info   = source;
+            SaveToDisk(e, tex);
+            CountReady++;
+            Verbose($"OK  '{e.Item?.Name}' ← {source} ({tex.width}x{tex.height})");
         }
 
         private void Extract(Entry e, AssetBundleLoader loader)

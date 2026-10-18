@@ -23,13 +23,14 @@ namespace AQWMod.InventoryThumbs.Core
         internal static ConfigEntry<float>  ArtWidth       { get; private set; }
         internal static ConfigEntry<float>  BadgeScale     { get; private set; }
         internal static ConfigEntry<float>  IconScale      { get; private set; }
+        internal static ConfigEntry<float>  CardMinRatio   { get; private set; }
 
         internal static ConfigEntry<bool>   ShowWeapons    { get; private set; }
         internal static ConfigEntry<bool>   ShowCapes      { get; private set; }
         internal static ConfigEntry<bool>   ShowHelms      { get; private set; }
         internal static ConfigEntry<bool>   ShowArmors     { get; private set; }
         internal static ConfigEntry<bool>   ShowPets       { get; private set; }
-        internal static ConfigEntry<bool>   ShowHouse      { get; private set; }
+        internal static ConfigEntry<bool>   HouseInCards   { get; private set; }
         internal static ConfigEntry<bool>   ShowOthers     { get; private set; }
 
         internal static ConfigEntry<string> DumpKey        { get; private set; }
@@ -62,6 +63,8 @@ namespace AQWMod.InventoryThumbs.Core
                 "Escala do ícone do jogo (tipo/raridade/equipado) que vira selo no canto do card.");
             IconScale = cfg.Bind("Layout", "IconScale", 1.25f,
                 "Modo Icon: tamanho da arte em relação ao ícone original.");
+            CardMinRatio = cfg.Bind("Layout", "CardMinRatio", 0.5f,
+                "Fração mínima de itens com arte para a lista virar card. Abaixo disso (Misc, Gems, House) fica a lista original.");
 
             ShowWeapons = cfg.Bind("Types", "Weapons", true, "Armas.");
             ShowCapes   = cfg.Bind("Types", "Capes",   true, "Capas.");
@@ -69,7 +72,8 @@ namespace AQWMod.InventoryThumbs.Core
             ShowArmors  = cfg.Bind("Types", "Armors",  true,
                 "Armaduras/classes (experimental: usa a maior peça do bundle, não o personagem montado).");
             ShowPets    = cfg.Bind("Types", "Pets",    true, "Pets.");
-            ShowHouse   = cfg.Bind("Types", "House",   true, "Casas e itens de casa.");
+            HouseInCards = cfg.Bind("Types", "HouseInCards", false,
+                "Casas e itens de casa como card. Desligado: a aba House fica na lista original.");
             ShowOthers  = cfg.Bind("Types", "Others",  true, "Demais itens que tenham arte.");
 
             DumpKey = cfg.Bind("Debug", "DumpKey", "F9",

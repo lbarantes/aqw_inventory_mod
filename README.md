@@ -57,8 +57,9 @@ simultâneos, ligar e desligar por tipo de item e ativar `VerboseLog`.
 
 ## Limitações conhecidas
 
-- O jogo mostra armaduras e classes montadas no personagem. Aqui aparece só a
-  maior peça do bundle (experimental).
+- Capacetes, armaduras e classes são fotografados vestidos num clone do seu
+  personagem (rosto, cabelo e gênero são os seus), igual ao preview do jogo.
+  Pets e itens de casa são fotografados montados (`Thumbnails/Studio.cs`).
 - A altura da linha é a do jogo, então a miniatura fica no espaço do ícone. O
   dump da F9 traz os tamanhos para, se for o caso, aumentar a linha
   (`ItemList.fabHeight`).

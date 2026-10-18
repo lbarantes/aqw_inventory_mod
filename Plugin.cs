@@ -34,6 +34,7 @@ namespace AQWMod.InventoryThumbs
                 }
 
                 host.AddComponent<ThumbnailService>().Setup(Logger);
+                host.AddComponent<Studio>().Setup(Logger);
 
                 InventoryListItemPatch.Log = Logger;
                 ItemListPatch.Log = Logger;
@@ -82,7 +83,7 @@ namespace AQWMod.InventoryThumbs
     {
         public const string GUID    = "com.aqwmod.inventorythumbs";
         public const string Name    = "AQW Inventory Thumbnails";
-        public const string Version = "0.2.0";
-        public const string Label   = "cards-arte-grande";
+        public const string Version = "0.2.1";
+        public const string Label   = "cards-pets-elmos-armaduras";
     }
 }

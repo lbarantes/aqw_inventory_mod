@@ -7,6 +7,25 @@ cópia da DLL em `versions/`. Para trocar a instalada (com o jogo fechado):
 .\tools\use-version.ps1 v0.1.0
 ```
 
+## v0.2.1 — cards-pets-elmos-armaduras
+
+Correções na v0.2.0, sem mudar o visual dos cards.
+
+- **House, Misc e Gems voltam a ser a lista original.** A decisão entre card e
+  lista é feita pelo conteúdo de cada aba: só vira card se pelo menos metade
+  dos itens tiver arte (`CardMinRatio`). Nas abas em lista, o mod não altera
+  nada. Itens de casa ficam fora dos cards (`HouseInCards = false`).
+- **Capacete, armadura e classe:** antes não aparecia nada. Agora seguem o
+  mesmo caminho do preview do jogo: um clone do seu personagem vestindo o
+  item é fotografado por uma câmera fora da tela. O capacete é enquadrado na
+  cabeça.
+- **Pets:** antes aparecia só uma peça solta. Agora o pet inteiro (todas as
+  peças) é fotografado.
+- Itens sem arte dentro de uma aba em card mostram o ícone do tipo, apagado,
+  no centro do quadro.
+- O cache em disco agora separa as entradas pela forma de extrair a arte. As
+  miniaturas antigas e erradas dos pets deixam de ser usadas.
+
 ## v0.2.0 — cards-arte-grande
 
 - Novo layout **Card** (padrão): cada linha fica com ~150px de altura (a
