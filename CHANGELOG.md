@@ -7,6 +7,25 @@ cópia da DLL em `versions/`. Para trocar a instalada (com o jogo fechado):
 powershell -ExecutionPolicy Bypass -File tools\use-version.ps1 v0.1.0
 ```
 
+## v0.4.0-pre2 — fullbody-escala-fixa (pré-versão, em validação)
+
+- **O personagem tem sempre o mesmo tamanho no card.** Antes a foto
+  enquadrava tudo que aparecia, então uma espada grande aumentava o quadro e
+  o personagem ficava "distante". Agora o quadro tem escala fixa: a altura do
+  personagem (dos pés, na origem do clone, até a cabeça, em `GetHelmPlace`)
+  vezes `[FullBody] Frame` (1.35), na proporção exata do quadro do card. Armas
+  muito grandes podem sair cortadas na borda. Aumente `Frame` para dar mais
+  espaço a elas.
+- **Pet aparece certo.** O jogo trata o clone como outro jogador, então:
+  - desligava o pet se "mostrar pets dos outros" estivesse desligado;
+  - o fazia andar atrás do personagem e esmaecer.
+  No Full Body, o mod agora mantém o pet ligado e parado no `PetAttach`, ao
+  lado do personagem, sem andar nem esmaecer.
+- Teste com **2 colunas** (`Columns = 2` no `.cfg`). Ctrl+F9 alterna sem
+  reiniciar.
+- O enquadramento e a proporção do card entram na chave do cache. Mudar
+  `Frame`, `Columns` ou `CardHeight` refaz as fotos.
+
 ## v0.4.0-pre1 — fullbody-grade (pré-versão, em validação)
 
 Pré-versão para testar o **Full Body Preview** antes de fechar a v0.4.0 (falta

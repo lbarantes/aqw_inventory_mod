@@ -28,6 +28,7 @@ namespace AQWMod.InventoryThumbs.Core
         internal static ConfigEntry<bool>   FullBody       { get; private set; }
         internal static ConfigEntry<int>    FullBodyColumns { get; private set; }
         internal static ConfigEntry<float>  FullBodyHeight { get; private set; }
+        internal static ConfigEntry<float>  FullBodyZoom   { get; private set; }
 
         internal static ConfigEntry<bool>   ShowWeapons    { get; private set; }
         internal static ConfigEntry<bool>   ShowCapes      { get; private set; }
@@ -75,6 +76,9 @@ namespace AQWMod.InventoryThumbs.Core
                 new ConfigDescription("Cards por fileira no Full Body Preview.", new AcceptableValueRange<int>(1, 4)));
             FullBodyHeight = cfg.Bind("FullBody", "CardHeight", 280f,
                 "Altura de cada card vertical do Full Body Preview.");
+            FullBodyZoom = cfg.Bind("FullBody", "Frame", 1.35f,
+                "Altura do quadro em relação à altura do personagem (pés à cabeça). Igual para todos os cards: " +
+                "maior = personagem menor, com mais espaço para armas grandes (que podem sair cortadas).");
             HelmOffsetY = cfg.Bind("Layout", "HelmOffsetY", 0.1f,
                 "Capacetes: desloca o centro do quadro para cima (fração do quadro) a partir da cabeça.");
             IconScale = cfg.Bind("Layout", "IconScale", 1.25f,

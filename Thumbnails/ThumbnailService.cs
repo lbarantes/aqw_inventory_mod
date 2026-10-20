@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using BepInEx;
+using HarmonyLib;
 using BepInEx.Logging;
 using UnityEngine;
 using AQWMod.InventoryThumbs.Core;
@@ -209,7 +210,7 @@ namespace AQWMod.InventoryThumbs.Thumbnails
             // preview do jogo): trocar de armadura gera outra foto
             // o enquadramento também entra na chave: mudar HelmFrame refaz as fotos
             if (strategy == Strategy.Body)
-                key += "|outfit" + OutfitSignature(item);
+                key += "|outfit" + OutfitSignature(item) + $"|fr{InvConfig.FullBodyZoom.Value:0.00}/{BodyFrameAspect():0.00}";
             else if (item.EquipSpot == EquipSpots.Head)
                 key += $"|body{BodySignature()}|f{InvConfig.HelmFrame.Value:0.00}/{InvConfig.HelmOffsetY.Value:0.00}";
             return key;
@@ -224,7 +225,20 @@ namespace AQWMod.InventoryThumbs.Thumbnails
             return body != null ? $"{body.EquipSpot}:{body.ID}" : "-";
         }
 
-        private static int StrategyVersion(Strategy s) => s == Strategy.Sprite ? 1 : s == Strategy.Body ? 1 : 2;
+        private static int StrategyVersion(Strategy s) => s == Strategy.Sprite ? 1 : s == Strategy.Body ? 2 : 2;
+
+        // proporção (largura/altura) do quadro da figura no card vertical, para
+        // a foto preencher o quadro sem sobras (CardRow.ApplyTall: largura da
+        // coluna - margens, altura do card - faixa do nome - margens)
+        internal static float BodyFrameAspect()
+        {
+            int cols = Mathf.Clamp(InvConfig.FullBodyColumns.Value, 1, 4);
+            // CardRow.ApplyTall: card com inset 3, quadro com margem 3 e faixa
+            // do nome de 46px, arte com inset 6 dentro do quadro
+            float w = 540f / cols - 24f;
+            float h = Mathf.Clamp(InvConfig.FullBodyHeight.Value, 120f, 600f) - 67f;
+            return Mathf.Clamp(w / Mathf.Max(1f, h), 0.3f, 3f);
+        }
 
         // o que, se mudar, exige refazer fotos que dependem do equipamento
         private static string EquipSignature() =>
@@ -511,7 +525,7 @@ namespace AQWMod.InventoryThumbs.Thumbnails
 
                 GameObject loaded = null;
                 clone = new Player(main, Studio.Instance.Stage, equips);
-                KeepInStudio(clone, slotPos);   // antes de qualquer peça ser criada
+                KeepInStudio(clone, slotPos, body);   // antes de qualquer peça ser criada
                 // o slot do próprio item sempre aparece; o resto segue as
                 // preferências do jogador (esconder capacete/capa/pet)
                 clone.showHelm  = !body || main.showHelm  || e.Item.EquipSpot == EquipSpots.Head;
@@ -519,7 +533,7 @@ namespace AQWMod.InventoryThumbs.Thumbnails
                 clone.showPet   = !body || main.showPet   || e.Item.EquipSpot == EquipSpots.Pet;
                 clone.OnGameObjectLoaded += (id, go) => loaded = go;
                 clone.createAvatar();
-                KeepInStudio(clone, slotPos);
+                KeepInStudio(clone, slotPos, body);
 
                 // Pronto = OnGameObjectLoaded do jogo. Mas às vezes a montagem do
                 // avatar quebra no meio (ex.: CustomizableCharacter.setupBack com
@@ -534,7 +548,7 @@ namespace AQWMod.InventoryThumbs.Thumbnails
                 {
                     waited += Time.unscaledDeltaTime;
                     yield return null;
-                    KeepInStudio(clone, slotPos);
+                    KeepInStudio(clone, slotPos, body);
 
                     int count = VisibleRendererCount(clone.getGameObject());
                     if (count > 0 && count == lastCount) stableFor += Time.unscaledDeltaTime;
@@ -551,7 +565,7 @@ namespace AQWMod.InventoryThumbs.Thumbnails
                 {
                     settle += Time.unscaledDeltaTime;
                     yield return null;
-                    KeepInStudio(clone, slotPos);
+                    KeepInStudio(clone, slotPos, body);
                 }
 
                 var root = clone.getGameObject() ?? loaded;
@@ -613,7 +627,7 @@ namespace AQWMod.InventoryThumbs.Thumbnails
         // createAvatar pode reposicionar o eGO, então repete a cada frame.
         // Cada clone fica na sua vaga (Studio.SlotPosition), longe dos outros:
         // a câmera enquadra só o alvo, então clones vizinhos não entram na foto.
-        private static void KeepInStudio(Player clone, Vector3 slotPos)
+        private static void KeepInStudio(Player clone, Vector3 slotPos, bool controlPet = false)
         {
             var go = clone?.getGameObject();
             if (go == null || Studio.Instance == null) return;
@@ -625,7 +639,44 @@ namespace AQWMod.InventoryThumbs.Thumbnails
             // o pet não é filho do clone: o jogo cria solto e o faz seguir o
             // PetAttach (FollowerGameObject). Nasce perto do clone (já no
             // estúdio); aqui só garante a layer da câmera do estúdio.
-            if (clone.petGO != null) Studio.Instance.SetLayerRecursive(clone.petGO, Studio.Instance.Layer);
+            if (clone.petGO != null)
+            {
+                Studio.Instance.SetLayerRecursive(clone.petGO, Studio.Instance.Layer);
+                if (controlPet) PinPet(clone);
+            }
+        }
+
+        // O pet do clone, deixado com o jogo, sai errado na foto:
+        //   - o clone não é o mainPlayer, então ApplyPetVisibilitySetting o trata
+        //     como pet de OUTRO jogador e o desliga se "mostrar pets dos outros"
+        //     estiver desligado;
+        //   - FollowerGameObject/Walk o fazem andar atrás do PetAttach e o
+        //     PetMaterialFader esmaece o pet ao "teleportar" (longe do dono).
+        // Aqui: pet sempre ligado, sem seguir/andar/esmaecer, parado no PetAttach.
+        private static void PinPet(Player clone)
+        {
+            var pet = clone.petGO;
+            if (!pet.activeSelf) pet.SetActive(true);
+
+            foreach (var mb in pet.GetComponentsInChildren<MonoBehaviour>(true))
+            {
+                if (mb == null || !mb.enabled) continue;
+                if (mb is FollowerGameObject || mb is Walk) mb.enabled = false;
+                else if (mb is PetMaterialFader fader)
+                {
+                    try { AccessTools.Method(typeof(PetMaterialFader), "StopFade")?.Invoke(fader, null); } catch { }
+                    try { AccessTools.Method(typeof(PetMaterialFader), "ResetMaterials")?.Invoke(fader, null); } catch { }
+                    fader.enabled = false;
+                }
+            }
+
+            var cc = (clone.GetAvatar() as HumanoidAvatar)?.CC;
+            var attach = cc != null ? cc.PetAttach : null;
+            if (attach != null)
+            {
+                var p = attach.transform.position;
+                pet.transform.position = new Vector3(p.x, p.y, pet.transform.position.z);
+            }
         }
 
         // Enquadramento do capacete com ESCALA FIXA: o quadro não depende do
@@ -657,7 +708,33 @@ namespace AQWMod.InventoryThumbs.Thumbnails
         }
 
         // Full Body: corpo inteiro + pet (que não é filho do clone)
+        // Enquadramento com ESCALA FIXA (como nos capacetes): o quadro sai da
+        // altura do personagem — pés (origem do eGO, no chão) até a cabeça
+        // (CC.GetHelmPlace) — vezes FullBodyZoom, na proporção do quadro do
+        // card. Arma grande, capa ou pet não mudam o tamanho do personagem;
+        // o que passar da borda é cortado. Sem âncora da cabeça, cai no
+        // enquadramento antigo (tudo que aparece).
         private static Bounds? BodyBounds(Player clone, GameObject root)
+        {
+            var cc = (clone.GetAvatar() as HumanoidAvatar)?.CC;
+            var head = cc != null ? cc.GetHelmPlace() : null;
+            if (head != null)
+            {
+                float feetY = root.transform.position.y;
+                var hp = head.transform.position;
+                float span = hp.y - feetY;
+                if (span > 0.5f)
+                {
+                    float h = span * Mathf.Clamp(InvConfig.FullBodyZoom.Value, 1f, 4f);
+                    float w = h * BodyFrameAspect();
+                    float bottom = feetY - h * 0.08f;
+                    return new Bounds(new Vector3(hp.x, bottom + h / 2f, hp.z), new Vector3(w, h, 10f));
+                }
+            }
+            return LooseBodyBounds(clone, root);
+        }
+
+        private static Bounds? LooseBodyBounds(Player clone, GameObject root)
         {
             var b = Studio.RendererBounds(root);
             var pet = clone.petGO != null ? Studio.RendererBounds(clone.petGO) : null;

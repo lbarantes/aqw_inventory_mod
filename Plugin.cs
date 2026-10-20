@@ -94,6 +94,6 @@ namespace AQWMod.InventoryThumbs
         public const string GUID    = "com.aqwmod.inventorythumbs";
         public const string Name    = "AQW Inventory Thumbnails";
         public const string Version = "0.4.0";   // BepInEx exige x.y.z; a pré-versão vai no Label
-        public const string Label   = "pre1-fullbody-grade";
+        public const string Label   = "pre2-fullbody-escala-fixa";
     }
 }
