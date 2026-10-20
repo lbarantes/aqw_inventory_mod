@@ -34,6 +34,12 @@ namespace AQWMod.InventoryThumbs.Patches
             catch { return true; }
         }
 
+        internal static void PostfixInventoryEnable(UIInventory __instance)
+        {
+            try { FullBodyToggle.Ensure(__instance); }
+            catch (Exception ex) { LogOnce(ex); }
+        }
+
         private static void LogOnce(Exception ex)
         {
             if (_errorLogged) return;

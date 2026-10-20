@@ -43,6 +43,17 @@ namespace AQWMod.InventoryThumbs.Cards
                 && prefab.transform.Find(CardRow.ContainerName) != null;
         }
 
+        // remonta as listas abertas (troca de layout pelo checkbox ou Ctrl+F9):
+        // ScaleTheList recria as linhas e passa pelo Rebuild (postfix)
+        internal static void RefreshAll()
+        {
+            foreach (var m in new List<MixedList>(Managed.Values))
+            {
+                if (m == null || m.List == null || !m.List.isActiveAndEnabled) continue;
+                m.List.ScaleTheList(m.List.currentTab, false);
+            }
+        }
+
         internal static MixedList Get(ItemList list) =>
             list != null && Managed.TryGetValue(list.GetInstanceID(), out var m) && m != null ? m : null;
     }

@@ -7,6 +7,38 @@ cópia da DLL em `versions/`. Para trocar a instalada (com o jogo fechado):
 powershell -ExecutionPolicy Bypass -File tools\use-version.ps1 v0.1.0
 ```
 
+## v0.4.0-pre1 — fullbody-grade (pré-versão, em validação)
+
+Pré-versão para testar o **Full Body Preview** antes de fechar a v0.4.0 (falta
+escolher 1, 2 ou 3 cards por fileira).
+
+- **Checkbox "Full Body Preview"** no rodapé do inventário, no canto oposto ao
+  "(+) 57 / 150 Items". Ao marcar, a lista é remontada na hora, e a escolha
+  fica salva no `.cfg` (`[FullBody] Enabled`).
+- Com o checkbox marcado, **armas, capacetes, armaduras, classes, capas e
+  pets** viram cards verticais em grade. Cada card mostra um clone do seu
+  personagem com o **conjunto atual**, só com o slot daquele item trocado:
+  - **Classe:** o clone veste a classe **sem armadura**. Com armadura, a
+    classe não aparece (a armadura cobre o corpo), então o card mostraria a
+    sua armadura em vez da classe.
+  - **Armadura:** entra no lugar da armadura atual.
+  - **Arma, capacete, capa e pet:** só aquele slot muda. O pet entra na foto
+    junto com o personagem.
+  - Capacete, capa e pet escondidos nas suas opções continuam escondidos,
+    exceto quando o card é do próprio item.
+- Os outros itens continuam como antes: card horizontal se tiverem arte,
+  linha original se não tiverem. Um item desses no meio da grade fecha a
+  fileira.
+- Ao trocar qualquer peça equipada, o mod percebe a mudança e refaz, aos
+  poucos, os cards visíveis. Cada combinação de conjunto fica no cache em
+  disco.
+- Ajustes em `[FullBody]`: `Columns` (1–4, padrão 3) e `CardHeight` (280).
+  **Ctrl+F9** relê o `.cfg` e remonta a lista na hora, sem precisar fechar o
+  inventário.
+- A grade usa mais linhas recicladas que as 11 do jogo. O mod cria as que
+  faltam do mesmo jeito que o jogo (`AddListItemPrefabs`).
+- O F9 mostra o layout de cada linha (`layout=Plain/Wide/Tall`).
+
 ## v0.3.1 — clone-nao-trava
 
 - **Corrige a aba de classes (e capacete/armadura) que às vezes não mostrava

@@ -43,10 +43,12 @@ namespace AQWMod.InventoryThumbs.Thumbnails
 
             if (mixed != null)
             {
-                // lista mista: card só para item com arte (mesmo critério do
-                // MixedList.WantsCard, que decidiu a altura desta posição)
-                EnsureCard(mixed);
-                _card.SetCard(key != null);
+                // lista mista: o layout sai do mesmo critério que o MixedList
+                // usou para o tamanho desta posição (ThumbnailService.KindFor)
+                EnsureCard();
+                var kind = ThumbnailService.KindFor(row.item);
+                _card.SetKind(kind, mixed.PlainHeight, MixedList.CardHeight, mixed.TallWidth, MixedList.TallHeight);
+                if (kind == ThumbnailService.Kind.Plain) key = null;
                 Hide();
                 CurrentKey = key;
                 if (key != null && ThumbnailService.Instance != null)
@@ -66,12 +68,12 @@ namespace AQWMod.InventoryThumbs.Thumbnails
             ThumbnailService.Instance.Request(this, row.item, key);
         }
 
-        private void EnsureCard(MixedList mixed)
+        private void EnsureCard()
         {
             if (_card != null) return;
             _card = GetComponent<CardRow>();
             if (_card == null) _card = gameObject.AddComponent<CardRow>();
-            _card.Build(_row, mixed.PlainHeight, MixedList.CardHeight);
+            _card.Build(_row);
         }
 
         internal void Show(Sprite sprite)

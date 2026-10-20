@@ -25,6 +25,9 @@ namespace AQWMod.InventoryThumbs.Core
         internal static ConfigEntry<float>  IconScale      { get; private set; }
         internal static ConfigEntry<float>  HelmFrame      { get; private set; }
         internal static ConfigEntry<float>  HelmOffsetY    { get; private set; }
+        internal static ConfigEntry<bool>   FullBody       { get; private set; }
+        internal static ConfigEntry<int>    FullBodyColumns { get; private set; }
+        internal static ConfigEntry<float>  FullBodyHeight { get; private set; }
 
         internal static ConfigEntry<bool>   ShowWeapons    { get; private set; }
         internal static ConfigEntry<bool>   ShowCapes      { get; private set; }
@@ -38,6 +41,7 @@ namespace AQWMod.InventoryThumbs.Core
         internal static ConfigEntry<bool>   VerboseLog     { get; private set; }
 
         internal static bool CardMode => Mode.Value == LayoutMode.Card;
+        internal static bool FullBodyMode => CardMode && FullBody.Value;
 
         internal static void Initialize(ConfigFile cfg)
         {
@@ -64,6 +68,13 @@ namespace AQWMod.InventoryThumbs.Core
                 "Escala do ícone do jogo (tipo/raridade/equipado) que vira selo no canto do card.");
             HelmFrame = cfg.Bind("Layout", "HelmFrame", 0.55f,
                 "Capacetes: altura do quadro em fração da altura do corpo. Igual para todos (mesma escala). Maior = mais afastado.");
+            FullBody = cfg.Bind("FullBody", "Enabled", false,
+                "Full Body Preview (checkbox no rodapé do inventário): armas, capacetes, armaduras, classes, " +
+                "capas e pets viram cards verticais com o seu conjunto atual vestindo o item.");
+            FullBodyColumns = cfg.Bind("FullBody", "Columns", 3,
+                new ConfigDescription("Cards por fileira no Full Body Preview.", new AcceptableValueRange<int>(1, 4)));
+            FullBodyHeight = cfg.Bind("FullBody", "CardHeight", 280f,
+                "Altura de cada card vertical do Full Body Preview.");
             HelmOffsetY = cfg.Bind("Layout", "HelmOffsetY", 0.1f,
                 "Capacetes: desloca o centro do quadro para cima (fração do quadro) a partir da cabeça.");
             IconScale = cfg.Bind("Layout", "IconScale", 1.25f,

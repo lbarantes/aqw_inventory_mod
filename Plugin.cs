@@ -15,12 +15,15 @@ namespace AQWMod.InventoryThumbs
     [BepInProcess("AdventureQuest Worlds Infinity.exe")]
     public sealed class Plugin : BaseUnityPlugin
     {
+        internal static BepInEx.Logging.ManualLogSource Log { get; private set; }
+
         private Harmony _harmony;
 
         private void Awake()
         {
             try
             {
+                Log = Logger;
                 InvConfig.Initialize(Config);
 
                 var host = new GameObject("__AQWInventoryThumbs__");
@@ -51,6 +54,10 @@ namespace AQWMod.InventoryThumbs
                       postfix: new HarmonyMethod(typeof(ItemListPatch), nameof(ItemListPatch.PostfixScale)));
                 Patch(typeof(inventoryListItem), "Update",
                       prefix: new HarmonyMethod(typeof(ItemListPatch), nameof(ItemListPatch.PrefixRowUpdate)));
+
+                // checkbox "Full Body Preview" no rodapé do inventário
+                Patch(typeof(UIInventory), nameof(UIInventory.OnEnable),
+                      postfix: new HarmonyMethod(typeof(ItemListPatch), nameof(ItemListPatch.PostfixInventoryEnable)));
 
                 Logger.LogInfo($"[InvThumbs] v{PluginInfo.Version} ({PluginInfo.Label}) inicializado. " +
                                $"Layout={InvConfig.Mode.Value} Dump={InvConfig.DumpKey.Value}");
@@ -86,7 +93,7 @@ namespace AQWMod.InventoryThumbs
     {
         public const string GUID    = "com.aqwmod.inventorythumbs";
         public const string Name    = "AQW Inventory Thumbnails";
-        public const string Version = "0.3.1";
-        public const string Label   = "clone-nao-trava";
+        public const string Version = "0.4.0";   // BepInEx exige x.y.z; a pré-versão vai no Label
+        public const string Label   = "pre1-fullbody-grade";
     }
 }

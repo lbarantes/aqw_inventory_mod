@@ -76,6 +76,85 @@ namespace AQWMod.InventoryThumbs.Thumbnails
             Sprite,   // arma/capa: sprite único do prefab (WeaponSlots/CapeSlots)
             Object,   // pet/item de casa: prefab de várias peças fotografado no Studio
             Clone,    // capacete/armadura/classe: clone do personagem vestindo o item
+            Body,     // Full Body Preview: clone com o conjunto atual + o item no slot dele
+        }
+
+        // Como a linha aparece na lista mista
+        internal enum Kind
+        {
+            Plain,    // linha original do jogo (sem arte)
+            Wide,     // card horizontal: arte à esquerda, nome à direita
+            Tall,     // card vertical (Full Body): figura em cima, nome embaixo
+        }
+
+        internal static Kind KindFor(Item item)
+        {
+            if (KeyFor(item) == null) return Kind.Plain;
+            return EffectiveStrategy(item) == Strategy.Body ? Kind.Tall : Kind.Wide;
+        }
+
+        // slots que aparecem no corpo do personagem
+        internal static bool IsBodySpot(EquipSpots spot)
+        {
+            switch (spot)
+            {
+                case EquipSpots.Weapon: case EquipSpots.Head: case EquipSpots.Back:
+                case EquipSpots.Armor:  case EquipSpots.Class: case EquipSpots.Pet:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        internal static Strategy EffectiveStrategy(Item item)
+        {
+            if (InvConfig.FullBodyMode && IsBodySpot(item.EquipSpot)) return Strategy.Body;
+            return StrategyFor(item);
+        }
+
+        private static bool UsesClone(Item item)
+        {
+            var s = EffectiveStrategy(item);
+            return s == Strategy.Clone || s == Strategy.Body;
+        }
+
+        // Conjunto que o clone do Full Body veste: o equipado agora, com o
+        // item da lista no slot dele.
+        //   - Classe: a armadura é removida — com armadura vestida, a classe
+        //     não aparece (a armadura cobre o corpo), então o card da classe
+        //     mostra a classe de verdade.
+        //   - Armadura: entra no lugar da atual (a classe fica, mas a armadura
+        //     é que aparece, igual no jogo).
+        //   - Demais (arma, capacete, capa, pet): só o slot do item muda.
+        internal static Dictionary<EquipSpots, EquipItem> BuildOutfit(Item item)
+        {
+            var outfit = new Dictionary<EquipSpots, EquipItem>();
+            var main = Entity.mainPlayer;
+            if (main?.equips != null)
+                foreach (var kv in main.equips)
+                    if (kv.Value != null && IsBodySpot(kv.Key)) outfit[kv.Key] = kv.Value;
+
+            if (item != null)
+            {
+                if (item.EquipSpot == EquipSpots.Class) outfit.Remove(EquipSpots.Armor);
+                outfit[item.EquipSpot] = item;
+            }
+            return outfit;
+        }
+
+        // assinatura do conjunto (para a chave do cache e para perceber troca de equipamento)
+        internal static string OutfitSignature(Item item)
+        {
+            var outfit = BuildOutfit(item);
+            var sb = new StringBuilder();
+            foreach (var spot in new[] { EquipSpots.Weapon, EquipSpots.Head, EquipSpots.Back,
+                                         EquipSpots.Armor, EquipSpots.Class, EquipSpots.Pet })
+                sb.Append(outfit.TryGetValue(spot, out var it) ? it.ID.ToString() : "-").Append(',');
+
+            var main = Entity.mainPlayer;
+            if (main != null)
+                sb.Append(main.showHelm ? 'h' : '_').Append(main.showCloak ? 'c' : '_').Append(main.showPet ? 'p' : '_');
+            return sb.ToString();
         }
 
         internal static Strategy StrategyFor(Item item)
@@ -115,8 +194,8 @@ namespace AQWMod.InventoryThumbs.Thumbnails
             if (IsMiscType(item.ItemType)) return null;
             if (!CategoryEnabled(item.EquipSpot)) return null;
 
-            var strategy = StrategyFor(item);
-            if (strategy != Strategy.Clone && item.EquipSpot != EquipSpots.Back
+            var strategy = EffectiveStrategy(item);
+            if (strategy != Strategy.Clone && strategy != Strategy.Body && item.EquipSpot != EquipSpots.Back
                 && string.IsNullOrEmpty(item.PrefabName))
                 return null;
 
@@ -129,7 +208,9 @@ namespace AQWMod.InventoryThumbs.Thumbnails
             // capacete é fotografado vestido com a armadura/classe atual (como o
             // preview do jogo): trocar de armadura gera outra foto
             // o enquadramento também entra na chave: mudar HelmFrame refaz as fotos
-            if (item.EquipSpot == EquipSpots.Head)
+            if (strategy == Strategy.Body)
+                key += "|outfit" + OutfitSignature(item);
+            else if (item.EquipSpot == EquipSpots.Head)
                 key += $"|body{BodySignature()}|f{InvConfig.HelmFrame.Value:0.00}/{InvConfig.HelmOffsetY.Value:0.00}";
             return key;
         }
@@ -143,7 +224,11 @@ namespace AQWMod.InventoryThumbs.Thumbnails
             return body != null ? $"{body.EquipSpot}:{body.ID}" : "-";
         }
 
-        private static int StrategyVersion(Strategy s) => s == Strategy.Sprite ? 1 : 2;
+        private static int StrategyVersion(Strategy s) => s == Strategy.Sprite ? 1 : s == Strategy.Body ? 1 : 2;
+
+        // o que, se mudar, exige refazer fotos que dependem do equipamento
+        private static string EquipSignature() =>
+            InvConfig.FullBodyMode ? OutfitSignature(null) : BodySignature();
 
         private static bool CategoryEnabled(EquipSpots spot)
         {
@@ -229,7 +314,7 @@ namespace AQWMod.InventoryThumbs.Thumbnails
             if (Time.unscaledTime >= _bodyCheckAt)
             {
                 _bodyCheckAt = Time.unscaledTime + 0.5f;
-                var body = BodySignature();
+                var body = EquipSignature();
                 if (_lastBody != null && body != _lastBody)
                 {
                     Verbose($"armadura mudou ({_lastBody} → {body}), recarregando linhas");
@@ -245,7 +330,7 @@ namespace AQWMod.InventoryThumbs.Thumbnails
             {
                 if (i >= _queue.Count) continue;
                 var e = _queue[i];
-                bool clone = StrategyFor(e.Item) == Strategy.Clone;
+                bool clone = UsesClone(e.Item);
                 if (clone ? _activeClones >= MaxClones : _active >= max) continue;
 
                 _queue.RemoveAt(i);
@@ -259,13 +344,14 @@ namespace AQWMod.InventoryThumbs.Thumbnails
 
         private IEnumerator Load(Entry e)
         {
-            bool isClone = StrategyFor(e.Item) == Strategy.Clone;
+            bool isClone = UsesClone(e.Item);
             if (isClone) _activeClones++; else _active++;
             e.State = State.Loading;
 
             IEnumerator job;
-            switch (StrategyFor(e.Item))
+            switch (EffectiveStrategy(e.Item))
             {
+                case Strategy.Body:
                 case Strategy.Clone:  job = LoadClone(e);  break;
                 case Strategy.Object: job = LoadObject(e); break;
                 default:              job = LoadSprite(e); break;
@@ -407,17 +493,30 @@ namespace AQWMod.InventoryThumbs.Thumbnails
             Player clone = null;
             try
             {
-                var equips = new Dictionary<EquipSpots, EquipItem> { { e.Item.EquipSpot, e.Item } };
-                if (e.Item.EquipSpot == EquipSpots.Head)
+                bool body = EffectiveStrategy(e.Item) == Strategy.Body;
+                Dictionary<EquipSpots, EquipItem> equips;
+                if (body)
                 {
-                    if (main.Armor != null)      equips[EquipSpots.Armor] = main.Armor;
-                    else if (main.Class != null) equips[EquipSpots.Class] = main.Class;
+                    equips = BuildOutfit(e.Item);
+                }
+                else
+                {
+                    equips = new Dictionary<EquipSpots, EquipItem> { { e.Item.EquipSpot, e.Item } };
+                    if (e.Item.EquipSpot == EquipSpots.Head)
+                    {
+                        if (main.Armor != null)      equips[EquipSpots.Armor] = main.Armor;
+                        else if (main.Class != null) equips[EquipSpots.Class] = main.Class;
+                    }
                 }
 
                 GameObject loaded = null;
                 clone = new Player(main, Studio.Instance.Stage, equips);
                 KeepInStudio(clone, slotPos);   // antes de qualquer peça ser criada
-                clone.showHelm = true;
+                // o slot do próprio item sempre aparece; o resto segue as
+                // preferências do jogador (esconder capacete/capa/pet)
+                clone.showHelm  = !body || main.showHelm  || e.Item.EquipSpot == EquipSpots.Head;
+                clone.showCloak = !body || main.showCloak || e.Item.EquipSpot == EquipSpots.Back;
+                clone.showPet   = !body || main.showPet   || e.Item.EquipSpot == EquipSpots.Pet;
                 clone.OnGameObjectLoaded += (id, go) => loaded = go;
                 clone.createAvatar();
                 KeepInStudio(clone, slotPos);
@@ -457,7 +556,9 @@ namespace AQWMod.InventoryThumbs.Thumbnails
 
                 var root = clone.getGameObject() ?? loaded;
                 Func<Bounds?> focus = null;
-                if (e.Item.EquipSpot == EquipSpots.Head)
+                if (body)
+                    focus = () => BodyBounds(clone, root);
+                else if (e.Item.EquipSpot == EquipSpots.Head)
                     focus = () => HelmBounds(clone, root);
 
                 // o estúdio (câmera) só é ocupado durante a foto em si
@@ -467,7 +568,7 @@ namespace AQWMod.InventoryThumbs.Thumbnails
                     Texture2D tex = null;
                     string error = null;
                     yield return Studio.Instance.Shoot(root, focus, (t, err) => { tex = t; error = err; });
-                    if (tex != null) Finish(e, tex, "studio:clone");
+                    if (tex != null) Finish(e, tex, body ? "studio:corpo" : "studio:clone");
                     else Fail(e, error ?? "foto falhou");
                 }
                 finally
@@ -477,7 +578,15 @@ namespace AQWMod.InventoryThumbs.Thumbnails
             }
             finally
             {
-                try { clone?.Dispose(); } catch { }   // Dispose destrói o GameObject do clone
+                // segurança: nunca deixar o Dispose do clone destruir o pet do
+                // personagem (o jogo só reaproveita pet existente para o
+                // mainPlayer, mas se um dia mudar, o pet real some)
+                try
+                {
+                    if (clone != null && clone.petGO != null && main.petGO == clone.petGO) clone.petGO = null;
+                }
+                catch { }
+                try { clone?.Dispose(); } catch { }   // Dispose destrói o GameObject do clone (e o pet dele)
                 _cloneSlots[slot] = false;
             }
         }
@@ -512,6 +621,11 @@ namespace AQWMod.InventoryThumbs.Thumbnails
             if (t.parent != Studio.Instance.Stage) t.SetParent(Studio.Instance.Stage, false);
             t.localPosition = slotPos;
             Studio.Instance.SetLayerRecursive(go, Studio.Instance.Layer);
+
+            // o pet não é filho do clone: o jogo cria solto e o faz seguir o
+            // PetAttach (FollowerGameObject). Nasce perto do clone (já no
+            // estúdio); aqui só garante a layer da câmera do estúdio.
+            if (clone.petGO != null) Studio.Instance.SetLayerRecursive(clone.petGO, Studio.Instance.Layer);
         }
 
         // Enquadramento do capacete com ESCALA FIXA: o quadro não depende do
@@ -540,6 +654,19 @@ namespace AQWMod.InventoryThumbs.Thumbnails
             var f = full.Value;
             float fh = f.size.y * 0.4f;
             return new Bounds(new Vector3(f.center.x, f.max.y - fh / 2f, f.center.z), new Vector3(f.size.x, fh, f.size.z));
+        }
+
+        // Full Body: corpo inteiro + pet (que não é filho do clone)
+        private static Bounds? BodyBounds(Player clone, GameObject root)
+        {
+            var b = Studio.RendererBounds(root);
+            var pet = clone.petGO != null ? Studio.RendererBounds(clone.petGO) : null;
+            if (b == null) return pet;
+            if (pet == null) return b;
+            var u = b.Value;
+            // pet que se afastou demais (andando) não estica a foto inteira
+            if (Vector3.Distance(pet.Value.center, u.center) < u.size.magnitude * 1.5f) u.Encapsulate(pet.Value);
+            return u;
         }
 
         // como Studio.RendererBounds, ignorando o que estiver sob "skip"

@@ -44,11 +44,14 @@ namespace AQWMod.InventoryThumbs.Debug
                     ThumbnailService.Instance?.ClearAll();
                 else if (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))
                 {
-                    // vale para as próximas listas criadas: feche e reabra o inventário
+                    // relê o .cfg e remonta as listas abertas na hora
                     InvConfig.File.Reload();
+                    AQWMod.InventoryThumbs.Cards.FullBodyToggle.SyncAll();
+                    AQWMod.InventoryThumbs.Cards.CardLayout.RefreshAll();
                     _log.LogInfo($"[InvDump] Config relida: Layout={InvConfig.Mode.Value} " +
                                  $"CardHeight={InvConfig.CardHeight.Value} ArtWidth={InvConfig.ArtWidth.Value} " +
-                                 "— feche e reabra o inventário.");
+                                 $"FullBody={InvConfig.FullBody.Value} Colunas={InvConfig.FullBodyColumns.Value} " +
+                                 $"AlturaFB={InvConfig.FullBodyHeight.Value}");
                 }
                 else
                     Dump();
@@ -95,7 +98,7 @@ namespace AQWMod.InventoryThumbs.Debug
                 if (it == null || !r.gameObject.activeInHierarchy) continue;
                 var tr  = r.GetComponent<ThumbRow>();
                 var key = ThumbnailService.KeyFor(it);
-                sb.AppendLine($"[InvDump]  '{it.Name}' type={it.ItemType} spot={it.EquipSpot} " +
+                sb.AppendLine($"[InvDump]  '{it.Name}' type={it.ItemType} spot={it.EquipSpot} layout={ThumbnailService.KindFor(it)} " +
                               $"bundle={(it.Bundle != null ? it.Bundle.Filename : "-")} prefab={it.PrefabName ?? "-"} " +
                               $"→ {svc?.DescribeKey(key)} | {tr?.Describe() ?? "sem ThumbRow"}");
             }
