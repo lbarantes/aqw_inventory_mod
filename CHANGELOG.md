@@ -7,6 +7,32 @@ cópia da DLL em `versions/`. Para trocar a instalada (com o jogo fechado):
 powershell -ExecutionPolicy Bypass -File tools\use-version.ps1 v0.1.0
 ```
 
+## v0.4.0 — full-set-preview
+
+Versão final do Full Set Preview, validada nas pré-versões pre1 a pre3 abaixo.
+
+- **Checkbox "Full Set Preview"** no rodapé do inventário, no canto oposto ao
+  "(+) 57 / 150 Items". A escolha fica salva no `.cfg`.
+- Com o checkbox marcado, **armas, capacetes, armaduras, classes, capas e
+  pets** viram cards verticais em grade, **2 por fileira** (padrão escolhido
+  nos testes). Cada card mostra o seu personagem com o **conjunto atual**, só
+  com o slot daquele item trocado.
+  - **Classe:** o clone veste a classe sem armadura, porque a armadura
+    cobriria a classe.
+  - O pet aparece parado ao lado do personagem.
+- O personagem tem sempre o mesmo tamanho no card: o quadro tem escala fixa
+  pela altura do corpo, e uma arma grande não o afasta (a arma pode sair
+  cortada).
+- O nível e o selo AC ficam no canto superior direito do quadro, com margem.
+- Os outros itens continuam como na v0.3: card horizontal se têm arte, linha
+  original se não têm.
+- Ao trocar uma peça equipada, os cards visíveis são refeitos aos poucos.
+- Ajustes em `[FullBody]`: `Columns` (1–4), `CardHeight` (280) e `Frame`
+  (1.35). Ctrl+F9 aplica na hora.
+
+Quem já tinha testado uma pré-versão mantém o `Columns` que está no seu
+`.cfg`. O padrão 2 vale para quem ainda não tem o valor salvo.
+
 ## v0.4.0-pre3 — full-set-nivel-afastado (pré-versão, em validação)
 
 - O checkbox agora se chama **"Full Set Preview"** (antes "Full Body

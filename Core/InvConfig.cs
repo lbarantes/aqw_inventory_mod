@@ -72,7 +72,7 @@ namespace AQWMod.InventoryThumbs.Core
             FullBody = cfg.Bind("FullBody", "Enabled", false,
                 "Full Set Preview (checkbox no rodapé do inventário): armas, capacetes, armaduras, classes, " +
                 "capas e pets viram cards verticais com o seu conjunto atual vestindo o item.");
-            FullBodyColumns = cfg.Bind("FullBody", "Columns", 3,
+            FullBodyColumns = cfg.Bind("FullBody", "Columns", 2,
                 new ConfigDescription("Cards por fileira no Full Set Preview.", new AcceptableValueRange<int>(1, 4)));
             FullBodyHeight = cfg.Bind("FullBody", "CardHeight", 280f,
                 "Altura de cada card vertical do Full Set Preview.");

@@ -15,8 +15,8 @@
        versions/v<Version>-<VersionLabel>/ para comparar versões depois
        (tools/use-version.ps1 troca a DLL instalada). -->
   <PropertyGroup>
-    <Version>0.4.0-pre3</Version>
-    <VersionLabel>full-set-nivel-afastado</VersionLabel>
+    <Version>0.4.0</Version>
+    <VersionLabel>full-set-preview</VersionLabel>
   </PropertyGroup>
 
   <PropertyGroup>

@@ -38,7 +38,20 @@ de arte à esquerda, ícone do jogo como selo, nome à direita) e um item sem
 arte fica na linha original do jogo. A lista do jogo só sabe trabalhar com
 altura fixa, então o `Cards/MixedList.cs` substitui a reciclagem de linhas
 (`inventoryListItem.Update`) por uma com altura por item. `Cards/CardRow.cs`
-guarda as duas geometrias de cada linha e alterna entre elas.
+guarda as geometrias de cada linha e alterna entre elas.
+
+## Full Set Preview
+
+O checkbox **Full Set Preview** fica no rodapé do inventário. Com ele
+marcado, armas, capacetes, armaduras, classes, capas e pets viram cards
+verticais em grade (2 por fileira, `[FullBody] Columns`). Cada card é uma foto
+de um clone do seu personagem com o conjunto equipado, só com o slot do item
+trocado. No card de uma classe, a armadura é tirada, para a classe aparecer.
+
+O quadro tem escala fixa pela altura do personagem (`[FullBody] Frame`), então
+todos os cards ficam do mesmo tamanho. O pet do clone é mantido ligado e
+parado no `PetAttach`. Cada combinação de conjunto fica no cache em disco, e
+trocar uma peça equipada refaz os cards visíveis.
 
 ## Versões
 
