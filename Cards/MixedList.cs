@@ -10,7 +10,7 @@ namespace AQWMod.InventoryThumbs.Cards
     // Lista mista: cada item tem o seu tamanho e posição.
     //   Plain → linha original (fabHeight), largura inteira
     //   Wide  → card horizontal (CardHeight), largura inteira
-    //   Tall  → card vertical (Full Body), em grade de FullBodyColumns por
+    //   Tall  → card vertical (Full Set), em grade de FullBodyColumns por
     //           fileira; um item Plain/Wide no meio fecha a fileira
     //
     // A ItemList do jogo só sabe altura fixa: inventoryListItem.Update move

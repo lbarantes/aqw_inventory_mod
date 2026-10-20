@@ -12,7 +12,7 @@ namespace AQWMod.InventoryThumbs.Cards
     //
     //   Plain → a linha original do jogo, intocada
     //   Wide  → card horizontal: quadro de arte à esquerda, nome à direita
-    //   Tall  → card vertical (Full Body Preview): figura em cima, nome
+    //   Tall  → card vertical (Full Set Preview): figura em cima, nome
     //           embaixo, nível no canto; vários por fileira (grade)
     //
     // Estrutura do prefab (do dump F9, linha original 540x73):
@@ -43,6 +43,8 @@ namespace AQWMod.InventoryThumbs.Cards
         private const float ArtInset = 6f;
         private const float NameGap  = 14f;
         private const float TallNameH = 46f;
+        private const float CornerInsetX = 10f;   // nível/AC afastados da borda do quadro
+        private const float CornerInsetY = 8f;
 
         private static readonly Color PanelColor = new Color(0f, 0f, 0f, 0.45f);
 
@@ -217,7 +219,7 @@ namespace AQWMod.InventoryThumbs.Cards
             _row.itemName.overflowMode     = TextOverflowModes.Ellipsis;
         }
 
-        // ── Card vertical (Full Body Preview) ─────────────────────────────────
+        // ── Card vertical (Full Set Preview) ─────────────────────────────────
 
         private void ApplyTall(float w, float h)
         {
@@ -272,7 +274,7 @@ namespace AQWMod.InventoryThumbs.Cards
                 var visual = level != null ? level : _right;
                 Scale(_right, 0.85f);
                 var vs = visual.rect.size * 0.85f;
-                MoveCenter(_right, visual, new Vector2(panelRight - vs.x / 2f, panelTop - vs.y / 2f));
+                MoveCenter(_right, visual, new Vector2(panelRight - CornerInsetX - vs.x / 2f, panelTop - CornerInsetY - vs.y / 2f));
             }
 
             // selo AC: logo abaixo do nível
@@ -280,7 +282,7 @@ namespace AQWMod.InventoryThumbs.Cards
             {
                 Scale(_ac, 0.55f);
                 var vs = _ac.rect.size * 0.55f;
-                MoveCenter(_ac, _ac, new Vector2(panelRight - vs.x / 2f, panelTop - 52f - vs.y / 2f));
+                MoveCenter(_ac, _ac, new Vector2(panelRight - CornerInsetX - vs.x / 2f, panelTop - CornerInsetY - 52f - vs.y / 2f));
             }
         }
 

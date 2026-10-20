@@ -77,7 +77,7 @@ namespace AQWMod.InventoryThumbs.Thumbnails
             Sprite,   // arma/capa: sprite único do prefab (WeaponSlots/CapeSlots)
             Object,   // pet/item de casa: prefab de várias peças fotografado no Studio
             Clone,    // capacete/armadura/classe: clone do personagem vestindo o item
-            Body,     // Full Body Preview: clone com o conjunto atual + o item no slot dele
+            Body,     // Full Set Preview: clone com o conjunto atual + o item no slot dele
         }
 
         // Como a linha aparece na lista mista
@@ -85,7 +85,7 @@ namespace AQWMod.InventoryThumbs.Thumbnails
         {
             Plain,    // linha original do jogo (sem arte)
             Wide,     // card horizontal: arte à esquerda, nome à direita
-            Tall,     // card vertical (Full Body): figura em cima, nome embaixo
+            Tall,     // card vertical (Full Set): figura em cima, nome embaixo
         }
 
         internal static Kind KindFor(Item item)
@@ -119,7 +119,7 @@ namespace AQWMod.InventoryThumbs.Thumbnails
             return s == Strategy.Clone || s == Strategy.Body;
         }
 
-        // Conjunto que o clone do Full Body veste: o equipado agora, com o
+        // Conjunto que o clone do Full Set veste: o equipado agora, com o
         // item da lista no slot dele.
         //   - Classe: a armadura é removida — com armadura vestida, a classe
         //     não aparece (a armadura cobre o corpo), então o card da classe
@@ -707,7 +707,7 @@ namespace AQWMod.InventoryThumbs.Thumbnails
             return new Bounds(new Vector3(f.center.x, f.max.y - fh / 2f, f.center.z), new Vector3(f.size.x, fh, f.size.z));
         }
 
-        // Full Body: corpo inteiro + pet (que não é filho do clone)
+        // Full Set: corpo inteiro + pet (que não é filho do clone)
         // Enquadramento com ESCALA FIXA (como nos capacetes): o quadro sai da
         // altura do personagem — pés (origem do eGO, no chão) até a cabeça
         // (CC.GetHelmPlace) — vezes FullBodyZoom, na proporção do quadro do

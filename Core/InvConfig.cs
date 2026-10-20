@@ -70,12 +70,12 @@ namespace AQWMod.InventoryThumbs.Core
             HelmFrame = cfg.Bind("Layout", "HelmFrame", 0.55f,
                 "Capacetes: altura do quadro em fração da altura do corpo. Igual para todos (mesma escala). Maior = mais afastado.");
             FullBody = cfg.Bind("FullBody", "Enabled", false,
-                "Full Body Preview (checkbox no rodapé do inventário): armas, capacetes, armaduras, classes, " +
+                "Full Set Preview (checkbox no rodapé do inventário): armas, capacetes, armaduras, classes, " +
                 "capas e pets viram cards verticais com o seu conjunto atual vestindo o item.");
             FullBodyColumns = cfg.Bind("FullBody", "Columns", 3,
-                new ConfigDescription("Cards por fileira no Full Body Preview.", new AcceptableValueRange<int>(1, 4)));
+                new ConfigDescription("Cards por fileira no Full Set Preview.", new AcceptableValueRange<int>(1, 4)));
             FullBodyHeight = cfg.Bind("FullBody", "CardHeight", 280f,
-                "Altura de cada card vertical do Full Body Preview.");
+                "Altura de cada card vertical do Full Set Preview.");
             FullBodyZoom = cfg.Bind("FullBody", "Frame", 1.35f,
                 "Altura do quadro em relação à altura do personagem (pés à cabeça). Igual para todos os cards: " +
                 "maior = personagem menor, com mais espaço para armas grandes (que podem sair cortadas).");

@@ -7,7 +7,7 @@ using AQWMod.InventoryThumbs.Core;
 namespace AQWMod.InventoryThumbs.Cards
 {
     // ──────────────────────────────────────────────────────────────────────────
-    // Checkbox "Full Body Preview" no rodapé do inventário, no canto oposto ao
+    // Checkbox "Full Set Preview" no rodapé do inventário, no canto oposto ao
     // "(+) 57 / 150 Items" (UIInventory.textItemCap).
     //
     // Criado por código (postfix em UIInventory.OnEnable), uma vez por janela:
@@ -19,7 +19,7 @@ namespace AQWMod.InventoryThumbs.Cards
     internal static class FullBodyToggle
     {
         private const string Name  = "__FullBodyToggle__";
-        private const string Label = "Full Body Preview";
+        private const string Label = "Full Set Preview";
 
         private static readonly Color Gold = new Color(0.86f, 0.68f, 0.30f, 1f);
 
@@ -123,7 +123,7 @@ namespace AQWMod.InventoryThumbs.Cards
             }
             catch (Exception ex)
             {
-                Plugin.Log?.LogError($"[InvThumbs] Erro ao trocar Full Body Preview: {ex}");
+                Plugin.Log?.LogError($"[InvThumbs] Erro ao trocar Full Set Preview: {ex}");
             }
         }
 

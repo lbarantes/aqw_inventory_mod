@@ -55,7 +55,7 @@ namespace AQWMod.InventoryThumbs
                 Patch(typeof(inventoryListItem), "Update",
                       prefix: new HarmonyMethod(typeof(ItemListPatch), nameof(ItemListPatch.PrefixRowUpdate)));
 
-                // checkbox "Full Body Preview" no rodapé do inventário
+                // checkbox "Full Set Preview" no rodapé do inventário
                 Patch(typeof(UIInventory), nameof(UIInventory.OnEnable),
                       postfix: new HarmonyMethod(typeof(ItemListPatch), nameof(ItemListPatch.PostfixInventoryEnable)));
 
@@ -94,6 +94,6 @@ namespace AQWMod.InventoryThumbs
         public const string GUID    = "com.aqwmod.inventorythumbs";
         public const string Name    = "AQW Inventory Thumbnails";
         public const string Version = "0.4.0";   // BepInEx exige x.y.z; a pré-versão vai no Label
-        public const string Label   = "pre2-fullbody-escala-fixa";
+        public const string Label   = "pre3-full-set-nivel-afastado";
     }
 }

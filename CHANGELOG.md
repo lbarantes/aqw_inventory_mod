@@ -7,6 +7,14 @@ cópia da DLL em `versions/`. Para trocar a instalada (com o jogo fechado):
 powershell -ExecutionPolicy Bypass -File tools\use-version.ps1 v0.1.0
 ```
 
+## v0.4.0-pre3 — full-set-nivel-afastado (pré-versão, em validação)
+
+- O checkbox agora se chama **"Full Set Preview"** (antes "Full Body
+  Preview"). A seção do `.cfg` continua `[FullBody]`, para manter a escolha
+  já salva.
+- No card vertical, o nível ("Lvl") e o selo AC saem do canto: ficam 10px
+  afastados da lateral e 8px do topo do quadro.
+
 ## v0.4.0-pre2 — fullbody-escala-fixa (pré-versão, em validação)
 
 - **O personagem tem sempre o mesmo tamanho no card.** Antes a foto
