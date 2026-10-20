@@ -9,7 +9,7 @@ powershell -ExecutionPolicy Bypass -File tools\use-version.ps1 v0.1.0
 
 ## v0.4.0 — full-set-preview
 
-Versão final do Full Set Preview, validada nas pré-versões pre1 a pre3 abaixo.
+Versão final do Full Set Preview, validada nas pré-versões pre1 a pre3.
 
 - **Checkbox "Full Set Preview"** no rodapé do inventário, no canto oposto ao
   "(+) 57 / 150 Items". A escolha fica salva no `.cfg`.

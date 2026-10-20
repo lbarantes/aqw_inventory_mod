@@ -1,0 +1,45 @@
+name: Conferir PR
+
+# Antes do merge, confere que a PR vai virar um release:
+#   - existe a DLL da versão em versions/v<Version>-<VersionLabel>/;
+#   - o CHANGELOG.md tem a seção da versão;
+#   - o instalador compila;
+#   - ainda não existe release com essa versão (senão o merge não publica
+#     nada: troque Version/VersionLabel no .csproj e PluginInfo no Plugin.cs).
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Inno Setup
+        shell: powershell
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress }
+
+      - name: Montar instalador
+        shell: powershell
+        run: powershell -ExecutionPolicy Bypass -File tools/build-release.ps1 -RequireInstaller
+
+      - name: Versão nova?
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Continue'
+          $tag = (Get-Content dist/release-tag.txt -Raw).Trim()
+          gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "::warning::O release $tag ja existe: este merge nao vai publicar release novo. Para publicar, suba a versao no .csproj (Version/VersionLabel) e no Plugin.cs."
+          } else {
+            Write-Host "OK: o merge vai publicar $tag"
+          }

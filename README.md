@@ -6,8 +6,44 @@ no item para ver o preview.
 
 ## Instalação
 
-`dotnet build -c Release` compila e copia `AQWInventoryThumbs.dll` para
-`BepInEx/plugins/`. Também fica uma cópia em `dist/`.
+Baixe o **AQWInventoryThumbs-Setup.exe** do [último release](https://github.com/lbarantes/aqw_inventory_mod/releases/latest)
+e execute. Ele acha a pasta do jogo pela Steam, instala o BepInEx 5.4.23.5 se
+faltar (se você já usa outro mod com BepInEx, nada muda nele) e coloca o mod em
+`BepInEx\plugins`. Para atualizar, rode o instalador da versão nova.
+
+Instalação manual: extraia o **AQWInventoryThumbs.zip** do release na pasta do
+jogo, a que tem o `AdventureQuest Worlds Infinity.exe`.
+
+## Desenvolvimento
+
+`dotnet build -c Release` (no PC com o jogo, ao lado das pastas do jogo)
+compila e copia `AQWInventoryThumbs.dll` para `BepInEx/plugins/`. Também ficam
+cópias em `dist/` e em `versions/v<Version>-<VersionLabel>/`.
+
+## Releases
+
+Cada merge na `main` vira um release no GitHub (`.github/workflows/release.yml`):
+tag `v<Version>-<VersionLabel>`, com instalador, .zip e DLL, e com as notas
+tiradas da seção da versão no `CHANGELOG.md`. Pré-versões (`-preN`) saem
+marcadas como pre-release.
+
+O GitHub não compila o mod, porque o código depende das DLLs do jogo, que não
+podem ir para o repositório. O release usa a DLL que está em `versions/`. Para
+lançar uma versão:
+
+1. Suba `Version` e `VersionLabel` no `inventory_mod.csproj`,
+   `PluginInfo.Version`/`Label` no `Plugin.cs` e escreva a seção no
+   `CHANGELOG.md`.
+2. Rode `dotnet build -c Release` e inclua no commit a pasta nova em
+   `versions/`.
+3. Abra a PR. O `pr-check.yml` monta o instalador e avisa se a versão já tem
+   release. Ao fazer o merge, o release é publicado.
+
+Para gerar o mesmo pacote localmente, em `dist/release`:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools\build-release.ps1
+```
 
 ## Como funciona
 

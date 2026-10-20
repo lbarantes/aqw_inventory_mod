@@ -1,0 +1,71 @@
+name: Publicar release
+
+# A cada merge na main (push na main), publica um release no GitHub com o
+# instalador, o .zip e a DLL da versão atual do .csproj (Version +
+# VersionLabel → tag v<Version>-<VersionLabel>). As notas saem da seção da
+# versão no CHANGELOG.md.
+#
+# A DLL NÃO é compilada aqui: o código depende das DLLs do jogo
+# (Assembly-CSharp etc.), que não podem ir para o repositório. Ela vem de
+# versions/v<Version>-<VersionLabel>/, gerada pelo `dotnet build -c Release`
+# no PC com o jogo e incluída no commit da versão.
+#
+# Se o release da versão atual já existe (merge sem trocar de versão, ex.:
+# só documentação), não publica nada. O check da PR (pr-check.yml) avisa
+# antes do merge.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# dois merges seguidos não podem publicar ao mesmo tempo
+concurrency:
+  group: publicar-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Inno Setup
+        shell: powershell
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress }
+
+      - name: Montar instalador
+        shell: powershell
+        run: powershell -ExecutionPolicy Bypass -File tools/build-release.ps1 -RequireInstaller
+
+      - name: Publicar
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Continue: no PowerShell 5, stderr do gh viraria excecao; os erros
+          # sao conferidos pelo codigo de saida
+          $ErrorActionPreference = 'Continue'
+          $repo = $env:GITHUB_REPOSITORY
+          $tag = (Get-Content dist/release-tag.txt -Raw).Trim()
+
+          gh release view $tag --repo $repo *> $null
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "::notice::Release $tag ja existe; nada a publicar (a versao nao mudou)."
+            exit 0
+          }
+
+          $title = "AQW Inventory Thumbnails $tag"
+          $flags = @()
+          if ($tag -match '-pre\d') { $flags += '--prerelease' } else { $flags += '--latest' }
+
+          $assets = Get-ChildItem dist/release -File | ForEach-Object { $_.FullName }
+          gh release create $tag --repo $repo --target $env:GITHUB_SHA `
+            --title $title --notes-file dist/release-notes.md @flags @assets
+          if ($LASTEXITCODE -ne 0) { throw 'Falha ao criar o release' }
+          Write-Host "Publicado: $tag"
